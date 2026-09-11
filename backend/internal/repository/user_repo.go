@@ -768,8 +768,10 @@ func (r *userRepository) GetLatestUsedAtByUserID(ctx context.Context, userID int
 
 func userBalanceResetNextAtExpr(userIDCol string) string {
 	return fmt.Sprintf(
-		"(SELECT MAX(%s) FROM %s WHERE %s = %s AND %s = '%s' AND %s = '%s' AND %s IS NOT NULL) + INTERVAL '%d days'",
+		"(SELECT COALESCE(%s, %s + INTERVAL '%d days') FROM %s WHERE %s = %s AND %s = '%s' AND %s = '%s' AND %s IS NOT NULL ORDER BY %s DESC LIMIT 1)",
+		redeemcode.FieldNextResetAt,
 		redeemcode.FieldUsedAt,
+		service.BalanceResetCycleDays(),
 		redeemcode.Table,
 		redeemcode.FieldUsedBy,
 		userIDCol,
@@ -778,7 +780,7 @@ func userBalanceResetNextAtExpr(userIDCol string) string {
 		redeemcode.FieldStatus,
 		service.StatusUsed,
 		redeemcode.FieldUsedAt,
-		service.BalanceResetCycleDays(),
+		redeemcode.FieldUsedAt,
 	)
 }
 

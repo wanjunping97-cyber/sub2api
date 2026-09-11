@@ -45,7 +45,8 @@ type AdminUser struct {
 
 	Notes      string     `json:"notes"`
 	LastUsedAt *time.Time `json:"last_used_at"`
-	// NextBalanceResetAt is used_at of the latest used balance_reset code + 7 days.
+	// NextBalanceResetAt is the latest used balance_reset next_reset_at,
+	// or used_at + 7 days when that override is empty.
 	// Nil when the user has never redeemed a reset code.
 	NextBalanceResetAt *time.Time `json:"next_balance_reset_at"`
 	// LastBalanceResetValue is the face value of that latest balance_reset code.

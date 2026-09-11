@@ -36,7 +36,8 @@ type User struct {
 	LastActiveAt         *time.Time
 	LastUsedAt           *time.Time
 	// NextBalanceResetAt is derived from the latest used balance_reset
-	// redeem code: used_at + 7 days. Nil when the user has never redeemed one.
+	// redeem code: next_reset_at if set, otherwise used_at + 7 days.
+	// Nil when the user has never redeemed one.
 	// Admin-facing reminder only; not persisted on the users row.
 	NextBalanceResetAt *time.Time
 	// LastBalanceResetValue is the face value of that latest balance_reset code.

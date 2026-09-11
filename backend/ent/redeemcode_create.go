@@ -100,6 +100,20 @@ func (_c *RedeemCodeCreate) SetNillableUsedAt(v *time.Time) *RedeemCodeCreate {
 	return _c
 }
 
+// SetNextResetAt sets the "next_reset_at" field.
+func (_c *RedeemCodeCreate) SetNextResetAt(v time.Time) *RedeemCodeCreate {
+	_c.mutation.SetNextResetAt(v)
+	return _c
+}
+
+// SetNillableNextResetAt sets the "next_reset_at" field if the given value is not nil.
+func (_c *RedeemCodeCreate) SetNillableNextResetAt(v *time.Time) *RedeemCodeCreate {
+	if v != nil {
+		_c.SetNextResetAt(*v)
+	}
+	return _c
+}
+
 // SetNotes sets the "notes" field.
 func (_c *RedeemCodeCreate) SetNotes(v string) *RedeemCodeCreate {
 	_c.mutation.SetNotes(v)
@@ -333,6 +347,10 @@ func (_c *RedeemCodeCreate) createSpec() (*RedeemCode, *sqlgraph.CreateSpec) {
 		_spec.SetField(redeemcode.FieldUsedAt, field.TypeTime, value)
 		_node.UsedAt = &value
 	}
+	if value, ok := _c.mutation.NextResetAt(); ok {
+		_spec.SetField(redeemcode.FieldNextResetAt, field.TypeTime, value)
+		_node.NextResetAt = &value
+	}
 	if value, ok := _c.mutation.Notes(); ok {
 		_spec.SetField(redeemcode.FieldNotes, field.TypeString, value)
 		_node.Notes = &value
@@ -522,6 +540,24 @@ func (u *RedeemCodeUpsert) UpdateUsedAt() *RedeemCodeUpsert {
 // ClearUsedAt clears the value of the "used_at" field.
 func (u *RedeemCodeUpsert) ClearUsedAt() *RedeemCodeUpsert {
 	u.SetNull(redeemcode.FieldUsedAt)
+	return u
+}
+
+// SetNextResetAt sets the "next_reset_at" field.
+func (u *RedeemCodeUpsert) SetNextResetAt(v time.Time) *RedeemCodeUpsert {
+	u.Set(redeemcode.FieldNextResetAt, v)
+	return u
+}
+
+// UpdateNextResetAt sets the "next_reset_at" field to the value that was provided on create.
+func (u *RedeemCodeUpsert) UpdateNextResetAt() *RedeemCodeUpsert {
+	u.SetExcluded(redeemcode.FieldNextResetAt)
+	return u
+}
+
+// ClearNextResetAt clears the value of the "next_reset_at" field.
+func (u *RedeemCodeUpsert) ClearNextResetAt() *RedeemCodeUpsert {
+	u.SetNull(redeemcode.FieldNextResetAt)
 	return u
 }
 
@@ -744,6 +780,27 @@ func (u *RedeemCodeUpsertOne) UpdateUsedAt() *RedeemCodeUpsertOne {
 func (u *RedeemCodeUpsertOne) ClearUsedAt() *RedeemCodeUpsertOne {
 	return u.Update(func(s *RedeemCodeUpsert) {
 		s.ClearUsedAt()
+	})
+}
+
+// SetNextResetAt sets the "next_reset_at" field.
+func (u *RedeemCodeUpsertOne) SetNextResetAt(v time.Time) *RedeemCodeUpsertOne {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.SetNextResetAt(v)
+	})
+}
+
+// UpdateNextResetAt sets the "next_reset_at" field to the value that was provided on create.
+func (u *RedeemCodeUpsertOne) UpdateNextResetAt() *RedeemCodeUpsertOne {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.UpdateNextResetAt()
+	})
+}
+
+// ClearNextResetAt clears the value of the "next_reset_at" field.
+func (u *RedeemCodeUpsertOne) ClearNextResetAt() *RedeemCodeUpsertOne {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.ClearNextResetAt()
 	})
 }
 
@@ -1144,6 +1201,27 @@ func (u *RedeemCodeUpsertBulk) UpdateUsedAt() *RedeemCodeUpsertBulk {
 func (u *RedeemCodeUpsertBulk) ClearUsedAt() *RedeemCodeUpsertBulk {
 	return u.Update(func(s *RedeemCodeUpsert) {
 		s.ClearUsedAt()
+	})
+}
+
+// SetNextResetAt sets the "next_reset_at" field.
+func (u *RedeemCodeUpsertBulk) SetNextResetAt(v time.Time) *RedeemCodeUpsertBulk {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.SetNextResetAt(v)
+	})
+}
+
+// UpdateNextResetAt sets the "next_reset_at" field to the value that was provided on create.
+func (u *RedeemCodeUpsertBulk) UpdateNextResetAt() *RedeemCodeUpsertBulk {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.UpdateNextResetAt()
+	})
+}
+
+// ClearNextResetAt clears the value of the "next_reset_at" field.
+func (u *RedeemCodeUpsertBulk) ClearNextResetAt() *RedeemCodeUpsertBulk {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.ClearNextResetAt()
 	})
 }
 

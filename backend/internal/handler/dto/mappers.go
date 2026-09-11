@@ -662,7 +662,7 @@ func redeemCodeFromServiceBase(rc *service.RedeemCode) RedeemCode {
 	}
 
 	if rc.Type == service.RedeemTypeBalanceReset && rc.UsedAt != nil {
-		next := service.NextBalanceResetAt(*rc.UsedAt)
+		next := service.ResolveNextBalanceResetAt(*rc.UsedAt, rc.NextResetAt)
 		out.NextBalanceResetAt = &next
 	}
 

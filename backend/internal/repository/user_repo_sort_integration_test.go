@@ -164,7 +164,12 @@ func (s *UserRepoSuite) TestListWithFilters_SortByLastUsedAtDesc_UsesUsageLogsNo
 
 func (s *UserRepoSuite) mustInsertUsedBalanceReset(userID int64, usedAt time.Time) {
 	s.T().Helper()
-	_, err := s.client.RedeemCode.Create().
+	s.mustInsertUsedBalanceResetWithNext(userID, usedAt, time.Time{})
+}
+
+func (s *UserRepoSuite) mustInsertUsedBalanceResetWithNext(userID int64, usedAt, nextResetAt time.Time) {
+	s.T().Helper()
+	create := s.client.RedeemCode.Create().
 		SetCode(fmt.Sprintf("RESET-%d-%d", userID, usedAt.UnixNano())).
 		SetType(service.RedeemTypeBalanceReset).
 		SetValue(50).
@@ -172,8 +177,11 @@ func (s *UserRepoSuite) mustInsertUsedBalanceReset(userID int64, usedAt time.Tim
 		SetUsedBy(userID).
 		SetUsedAt(usedAt.UTC()).
 		SetNotes("").
-		SetValidityDays(0).
-		Save(s.ctx)
+		SetValidityDays(0)
+	if !nextResetAt.IsZero() {
+		create.SetNextResetAt(nextResetAt.UTC())
+	}
+	_, err := create.Save(s.ctx)
 	s.Require().NoError(err)
 }
 
@@ -227,6 +235,32 @@ func (s *UserRepoSuite) TestListWithFilters_BalanceResetDueOverdueAndDueSoon() {
 	s.Require().NoError(err)
 	s.Require().Len(dueSoon, 1)
 	s.Require().Equal(dueSoonUser.ID, dueSoon[0].ID)
+}
+
+func (s *UserRepoSuite) TestListWithFilters_CustomNextResetAtOverridesUsedAtPlusSeven() {
+	usedAt := time.Now().Add(-24 * time.Hour).UTC().Truncate(time.Second)
+	overdueNext := time.Now().Add(-time.Hour).UTC().Truncate(time.Second)
+	laterNext := time.Now().Add(10 * 24 * time.Hour).UTC().Truncate(time.Second)
+
+	overdueUser := s.mustCreateUser(&service.User{Email: "custom-overdue@example.com"})
+	laterUser := s.mustCreateUser(&service.User{Email: "custom-later@example.com"})
+	s.mustInsertUsedBalanceResetWithNext(overdueUser.ID, usedAt, overdueNext)
+	s.mustInsertUsedBalanceResetWithNext(laterUser.ID, usedAt, laterNext)
+
+	overdue, _, err := s.repo.ListWithFilters(s.ctx, pagination.PaginationParams{
+		Page: 1, PageSize: 10, SortBy: "email", SortOrder: "asc",
+	}, service.UserListFilters{BalanceResetDue: service.BalanceResetDueOverdue})
+	s.Require().NoError(err)
+	s.Require().Len(overdue, 1)
+	s.Require().Equal(overdueUser.ID, overdue[0].ID)
+
+	sorted, _, err := s.repo.ListWithFilters(s.ctx, pagination.PaginationParams{
+		Page: 1, PageSize: 10, SortBy: "next_balance_reset_at", SortOrder: "asc",
+	}, service.UserListFilters{})
+	s.Require().NoError(err)
+	s.Require().GreaterOrEqual(len(sorted), 2)
+	s.Require().Equal(overdueUser.ID, sorted[0].ID)
+	s.Require().Equal(laterUser.ID, sorted[1].ID)
 }
 
 func TestUserRepoSortSuiteSmoke(_ *testing.T) {}

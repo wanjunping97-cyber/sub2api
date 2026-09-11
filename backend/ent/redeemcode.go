@@ -31,6 +31,8 @@ type RedeemCode struct {
 	UsedBy *int64 `json:"used_by,omitempty"`
 	// UsedAt holds the value of the "used_at" field.
 	UsedAt *time.Time `json:"used_at,omitempty"`
+	// Optional admin override for the next natural balance reset reminder. When empty, next reset is used_at + 7 days.
+	NextResetAt *time.Time `json:"next_reset_at,omitempty"`
 	// Notes holds the value of the "notes" field.
 	Notes *string `json:"notes,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -91,7 +93,7 @@ func (*RedeemCode) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case redeemcode.FieldCode, redeemcode.FieldType, redeemcode.FieldStatus, redeemcode.FieldNotes:
 			values[i] = new(sql.NullString)
-		case redeemcode.FieldUsedAt, redeemcode.FieldCreatedAt, redeemcode.FieldExpiresAt:
+		case redeemcode.FieldUsedAt, redeemcode.FieldNextResetAt, redeemcode.FieldCreatedAt, redeemcode.FieldExpiresAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -151,6 +153,13 @@ func (_m *RedeemCode) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.UsedAt = new(time.Time)
 				*_m.UsedAt = value.Time
+			}
+		case redeemcode.FieldNextResetAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field next_reset_at", values[i])
+			} else if value.Valid {
+				_m.NextResetAt = new(time.Time)
+				*_m.NextResetAt = value.Time
 			}
 		case redeemcode.FieldNotes:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -250,6 +259,11 @@ func (_m *RedeemCode) String() string {
 	builder.WriteString(", ")
 	if v := _m.UsedAt; v != nil {
 		builder.WriteString("used_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.NextResetAt; v != nil {
+		builder.WriteString("next_reset_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
