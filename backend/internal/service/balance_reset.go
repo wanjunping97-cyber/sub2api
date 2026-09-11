@@ -21,6 +21,12 @@ func NextBalanceResetAt(usedAt time.Time) time.Time {
 	return usedAt.UTC().Add(BalanceResetCycle)
 }
 
+// LatestBalanceReset is the newest used balance_reset code for a user.
+type LatestBalanceReset struct {
+	UsedAt time.Time
+	Value  float64
+}
+
 func BalanceResetCycleDays() int {
 	return int(BalanceResetCycle / (24 * time.Hour))
 }

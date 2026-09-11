@@ -48,6 +48,8 @@ type AdminUser struct {
 	// NextBalanceResetAt is used_at of the latest used balance_reset code + 7 days.
 	// Nil when the user has never redeemed a reset code.
 	NextBalanceResetAt *time.Time `json:"next_balance_reset_at"`
+	// LastBalanceResetValue is the face value of that latest balance_reset code.
+	LastBalanceResetValue *float64 `json:"last_balance_reset_value,omitempty"`
 	// GroupRates 用户专属分组倍率配置
 	// map[groupID]rateMultiplier
 	GroupRates map[int64]float64 `json:"group_rates,omitempty"`

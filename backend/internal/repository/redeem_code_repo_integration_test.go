@@ -528,7 +528,7 @@ func (s *RedeemCodeRepoSuite) TestCreateBatch_Filters_Use_Idempotency_ListByUser
 	s.Require().Equal("CODEA", used[0].Code, "expected newest used code first")
 }
 
-func (s *RedeemCodeRepoSuite) TestLatestBalanceResetAtByUserIDs_UsesLatestUsedReset() {
+func (s *RedeemCodeRepoSuite) TestLatestBalanceResetByUserIDs_UsesLatestUsedReset() {
 	userA := s.createUser("reset-a@example.com")
 	userB := s.createUser("reset-b@example.com")
 	userC := s.createUser("reset-c@example.com")
@@ -552,10 +552,11 @@ func (s *RedeemCodeRepoSuite) TestLatestBalanceResetAtByUserIDs_UsesLatestUsedRe
 		Code: "RESET-UNUSED", Type: service.RedeemTypeBalanceReset, Value: 50, Status: service.StatusUnused,
 	}))
 
-	got, err := s.repo.LatestBalanceResetAtByUserIDs(s.ctx, []int64{userA.ID, userB.ID, userC.ID})
+	got, err := s.repo.LatestBalanceResetByUserIDs(s.ctx, []int64{userA.ID, userB.ID, userC.ID})
 	s.Require().NoError(err)
 	s.Require().Contains(got, userA.ID)
 	s.Require().NotContains(got, userB.ID)
 	s.Require().NotContains(got, userC.ID)
-	s.Require().True(got[userA.ID].Equal(newer))
+	s.Require().True(got[userA.ID].UsedAt.Equal(newer))
+	s.Require().Equal(80.0, got[userA.ID].Value)
 }

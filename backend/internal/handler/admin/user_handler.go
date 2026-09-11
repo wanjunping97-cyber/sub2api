@@ -97,6 +97,12 @@ type UpdateBalanceRequest struct {
 	Notes     string  `json:"notes"`
 }
 
+// ResetBalanceRequest replaces the user's balance like a balance_reset redeem.
+type ResetBalanceRequest struct {
+	Value float64 `json:"value" binding:"required,gt=0"`
+	Notes string  `json:"notes"`
+}
+
 type BindUserAuthIdentityRequest struct {
 	ProviderType    string                              `json:"provider_type"`
 	ProviderKey     string                              `json:"provider_key"`
@@ -416,6 +422,38 @@ func (h *UserHandler) UpdateBalance(c *gin.Context) {
 	}
 	executeAdminIdempotentJSON(c, "admin.users.balance.update", idempotencyPayload, service.DefaultWriteIdempotencyTTL(), func(ctx context.Context) (any, error) {
 		user, execErr := h.adminService.UpdateUserBalance(ctx, userID, req.Balance, req.Operation, req.Notes)
+		if execErr != nil {
+			return nil, execErr
+		}
+		return dto.UserFromServiceAdmin(user), nil
+	})
+}
+
+// ResetBalance replaces the user's balance and records a used balance_reset
+// so next_balance_reset_at becomes now + 7 days.
+// POST /api/v1/admin/users/:id/balance-reset
+func (h *UserHandler) ResetBalance(c *gin.Context) {
+	userID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "Invalid user ID")
+		return
+	}
+
+	var req ResetBalanceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	idempotencyPayload := struct {
+		UserID int64                `json:"user_id"`
+		Body   ResetBalanceRequest  `json:"body"`
+	}{
+		UserID: userID,
+		Body:   req,
+	}
+	executeAdminIdempotentJSON(c, "admin.users.balance.reset", idempotencyPayload, service.DefaultWriteIdempotencyTTL(), func(ctx context.Context) (any, error) {
+		user, execErr := h.adminService.ResetUserBalance(ctx, userID, req.Value, req.Notes)
 		if execErr != nil {
 			return nil, execErr
 		}

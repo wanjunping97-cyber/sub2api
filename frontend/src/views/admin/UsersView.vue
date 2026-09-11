@@ -744,6 +744,15 @@
                 {{ t('admin.users.withdraw') }}
               </button>
 
+              <!-- Run natural balance reset -->
+              <button
+                @click="handleResetBalance(user); closeActionMenu()"
+                class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+              >
+                <Icon name="refresh" size="sm" class="text-amber-500" :stroke-width="2" />
+                {{ t('admin.users.resetBalance') }}
+              </button>
+
               <!-- Platform Quotas -->
               <button
                 @click="handlePlatformQuota(user); closeActionMenu()"
@@ -797,7 +806,8 @@
     <UserApiKeysModal :show="showApiKeysModal" :user="viewingUser" @close="closeApiKeysModal" />
     <UserAllowedGroupsModal :show="showAllowedGroupsModal" :user="allowedGroupsUser" @close="closeAllowedGroupsModal" @success="loadUsers" />
     <UserBalanceModal :show="showBalanceModal" :user="balanceUser" :operation="balanceOperation" @close="closeBalanceModal" @success="loadUsers" />
-    <UserBalanceHistoryModal :show="showBalanceHistoryModal" :user="balanceHistoryUser" @close="closeBalanceHistoryModal" @deposit="handleDepositFromHistory" @withdraw="handleWithdrawFromHistory" />
+    <UserBalanceResetModal :show="showResetBalanceModal" :user="resetBalanceUser" @close="closeResetBalanceModal" @success="handleResetBalanceSuccess" />
+    <UserBalanceHistoryModal :show="showBalanceHistoryModal" :user="balanceHistoryUser" @close="closeBalanceHistoryModal" @deposit="handleDepositFromHistory" @withdraw="handleWithdrawFromHistory" @reset="handleResetFromHistory" />
     <GroupReplaceModal :show="showGroupReplaceModal" :user="groupReplaceUser" :old-group="groupReplaceOldGroup" :all-groups="allGroups" @close="closeGroupReplaceModal" @success="loadUsers" />
     <UserAttributesConfigModal :show="showAttributesModal" @close="handleAttributesModalClose" />
   </AppLayout>
@@ -840,6 +850,7 @@ import UserPlatformQuotaModal from '@/components/admin/user/UserPlatformQuotaMod
 import UserApiKeysModal from '@/components/admin/user/UserApiKeysModal.vue'
 import UserAllowedGroupsModal from '@/components/admin/user/UserAllowedGroupsModal.vue'
 import UserBalanceModal from '@/components/admin/user/UserBalanceModal.vue'
+import UserBalanceResetModal from '@/components/admin/user/UserBalanceResetModal.vue'
 import UserBalanceHistoryModal from '@/components/admin/user/UserBalanceHistoryModal.vue'
 import GroupReplaceModal from '@/components/admin/user/GroupReplaceModal.vue'
 
@@ -1581,6 +1592,9 @@ const showBalanceModal = ref(false)
 const balanceUser = ref<AdminUser | null>(null)
 const balanceOperation = ref<'add' | 'subtract'>('add')
 
+const showResetBalanceModal = ref(false)
+const resetBalanceUser = ref<AdminUser | null>(null)
+
 // Balance History modal state
 const showBalanceHistoryModal = ref(false)
 const balanceHistoryUser = ref<AdminUser | null>(null)
@@ -1853,6 +1867,23 @@ const closeBalanceModal = () => {
   balanceUser.value = null
 }
 
+const handleResetBalance = (user: AdminUser) => {
+  resetBalanceUser.value = user
+  showResetBalanceModal.value = true
+}
+
+const closeResetBalanceModal = () => {
+  showResetBalanceModal.value = false
+  resetBalanceUser.value = null
+}
+
+const handleResetBalanceSuccess = (updated: AdminUser) => {
+  if (balanceHistoryUser.value?.id === updated.id) {
+    balanceHistoryUser.value = { ...balanceHistoryUser.value, ...updated }
+  }
+  loadUsers()
+}
+
 const handleBalanceHistory = (user: AdminUser) => {
   balanceHistoryUser.value = user
   showBalanceHistoryModal.value = true
@@ -1874,6 +1905,12 @@ const handleDepositFromHistory = () => {
 const handleWithdrawFromHistory = () => {
   if (balanceHistoryUser.value) {
     handleWithdraw(balanceHistoryUser.value)
+  }
+}
+
+const handleResetFromHistory = () => {
+  if (balanceHistoryUser.value) {
+    handleResetBalance(balanceHistoryUser.value)
   }
 }
 

@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -23,6 +24,10 @@ func (s *balanceUserRepoStub) AdjustBalance(ctx context.Context, id int64, delta
 
 func (s *balanceUserRepoStub) SetBalance(ctx context.Context, id int64, value float64) (BalanceChange, error) {
 	return s.apply(func(float64) float64 { return value })
+}
+
+func (s *balanceUserRepoStub) GetLatestUsedAtByUserID(context.Context, int64) (*time.Time, error) {
+	return nil, nil
 }
 
 func (s *balanceUserRepoStub) apply(next func(current float64) float64) (BalanceChange, error) {
@@ -54,6 +59,24 @@ func (s *balanceRedeemRepoStub) Create(ctx context.Context, code *RedeemCode) er
 	clone := *code
 	s.created = append(s.created, &clone)
 	return nil
+}
+
+func (s *balanceRedeemRepoStub) LatestBalanceResetByUserIDs(_ context.Context, userIDs []int64) (map[int64]LatestBalanceReset, error) {
+	result := make(map[int64]LatestBalanceReset, len(userIDs))
+	wanted := make(map[int64]struct{}, len(userIDs))
+	for _, userID := range userIDs {
+		wanted[userID] = struct{}{}
+	}
+	for _, code := range s.created {
+		if code == nil || code.Type != RedeemTypeBalanceReset || code.UsedBy == nil || code.UsedAt == nil {
+			continue
+		}
+		if _, ok := wanted[*code.UsedBy]; !ok {
+			continue
+		}
+		result[*code.UsedBy] = LatestBalanceReset{UsedAt: *code.UsedAt, Value: code.Value}
+	}
+	return result, nil
 }
 
 type authCacheInvalidatorStub struct {
@@ -260,4 +283,80 @@ func TestAdminService_UpdateUserBalance_AffiliateFailureDoesNotRollbackRecharge(
 	require.Equal(t, 15.0, user.Balance)
 	require.Equal(t, []adminRechargeAffiliateAccrual{{userID: 7, amount: 5}}, affiliate.calls)
 	require.Len(t, redeemRepo.created, 1)
+}
+
+func TestAdminService_ResetUserBalance_ReplacesBalanceAndRecordsReset(t *testing.T) {
+	baseRepo := &userRepoStub{user: &User{ID: 7, Balance: 10}}
+	repo := &balanceUserRepoStub{userRepoStub: baseRepo}
+	redeemRepo := &balanceRedeemRepoStub{redeemRepoStub: &redeemRepoStub{}}
+	invalidator := &authCacheInvalidatorStub{}
+	affiliate := &adminRechargeAffiliateAccruerStub{}
+	svc := &adminServiceImpl{
+		userRepo:             repo,
+		redeemCodeRepo:       redeemRepo,
+		authCacheInvalidator: invalidator,
+		settingService:       adminRechargeSettingService(true),
+		affiliateService:     affiliate,
+	}
+
+	before := time.Now()
+	user, err := svc.ResetUserBalance(context.Background(), 7, 80, "natural reset")
+	require.NoError(t, err)
+	require.Equal(t, []BalanceChange{{Old: 10, New: 80}}, repo.changes)
+	require.Equal(t, 80.0, user.Balance)
+	require.Equal(t, []int64{7}, invalidator.userIDs)
+	require.Empty(t, affiliate.calls)
+	require.Len(t, redeemRepo.created, 1)
+	record := redeemRepo.created[0]
+	require.Equal(t, RedeemTypeBalanceReset, record.Type)
+	require.Equal(t, StatusUsed, record.Status)
+	require.Equal(t, 80.0, record.Value)
+	require.Equal(t, "natural reset", record.Notes)
+	require.NotNil(t, record.UsedBy)
+	require.Equal(t, int64(7), *record.UsedBy)
+	require.NotNil(t, record.UsedAt)
+	require.False(t, record.UsedAt.Before(before))
+	require.NotEmpty(t, record.Code)
+	require.NotNil(t, user.NextBalanceResetAt)
+	require.WithinDuration(t, NextBalanceResetAt(*record.UsedAt), *user.NextBalanceResetAt, time.Second)
+	require.NotNil(t, user.LastBalanceResetValue)
+	require.Equal(t, 80.0, *user.LastBalanceResetValue)
+}
+
+func TestAdminService_ResetUserBalance_RecordsEvenWhenBalanceUnchanged(t *testing.T) {
+	baseRepo := &userRepoStub{user: &User{ID: 7, Balance: 50}}
+	repo := &balanceUserRepoStub{userRepoStub: baseRepo}
+	redeemRepo := &balanceRedeemRepoStub{redeemRepoStub: &redeemRepoStub{}}
+	invalidator := &authCacheInvalidatorStub{}
+	svc := &adminServiceImpl{
+		userRepo:             repo,
+		redeemCodeRepo:       redeemRepo,
+		authCacheInvalidator: invalidator,
+	}
+
+	user, err := svc.ResetUserBalance(context.Background(), 7, 50, "")
+	require.NoError(t, err)
+	require.Equal(t, []BalanceChange{{Old: 50, New: 50}}, repo.changes)
+	require.Equal(t, 50.0, user.Balance)
+	require.Equal(t, []int64{7}, invalidator.userIDs)
+	require.Len(t, redeemRepo.created, 1)
+	require.Equal(t, RedeemTypeBalanceReset, redeemRepo.created[0].Type)
+	require.Equal(t, 50.0, redeemRepo.created[0].Value)
+	require.NotNil(t, user.NextBalanceResetAt)
+}
+
+func TestAdminService_ResetUserBalance_RejectsNonPositiveValue(t *testing.T) {
+	repo := &balanceUserRepoStub{userRepoStub: &userRepoStub{user: &User{ID: 7, Balance: 10}}}
+	redeemRepo := &balanceRedeemRepoStub{redeemRepoStub: &redeemRepoStub{}}
+	svc := &adminServiceImpl{
+		userRepo:       repo,
+		redeemCodeRepo: redeemRepo,
+	}
+
+	_, err := svc.ResetUserBalance(context.Background(), 7, 0, "")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "greater than zero")
+	require.Empty(t, repo.changes)
+	require.Empty(t, redeemRepo.created)
+	require.Equal(t, 10.0, repo.userRepoStub.user.Balance)
 }

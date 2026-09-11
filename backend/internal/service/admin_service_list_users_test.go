@@ -168,20 +168,20 @@ func TestAdminService_ListUsers_PassesSortParams(t *testing.T) {
 
 type latestBalanceResetAtRepoStub struct {
 	RedeemCodeRepository
-	latest map[int64]time.Time
+	latest map[int64]LatestBalanceReset
 	err    error
 	calls  int
 }
 
-func (s *latestBalanceResetAtRepoStub) LatestBalanceResetAtByUserIDs(_ context.Context, userIDs []int64) (map[int64]time.Time, error) {
+func (s *latestBalanceResetAtRepoStub) LatestBalanceResetByUserIDs(_ context.Context, userIDs []int64) (map[int64]LatestBalanceReset, error) {
 	s.calls++
 	if s.err != nil {
 		return nil, s.err
 	}
-	result := make(map[int64]time.Time, len(userIDs))
+	result := make(map[int64]LatestBalanceReset, len(userIDs))
 	for _, userID := range userIDs {
-		if ts, ok := s.latest[userID]; ok {
-			result[userID] = ts
+		if rec, ok := s.latest[userID]; ok {
+			result[userID] = rec
 		}
 	}
 	return result, nil
@@ -211,7 +211,7 @@ func TestAdminService_ListUsers_PopulatesNextBalanceResetAt(t *testing.T) {
 		users: []User{{ID: 101, Email: "reset@example.com"}},
 	}
 	redeemRepo := &latestBalanceResetAtRepoStub{
-		latest: map[int64]time.Time{101: usedAt},
+		latest: map[int64]LatestBalanceReset{101: {UsedAt: usedAt, Value: 80}},
 	}
 	svc := &adminServiceImpl{userRepo: userRepo, redeemCodeRepo: redeemRepo}
 
@@ -222,6 +222,8 @@ func TestAdminService_ListUsers_PopulatesNextBalanceResetAt(t *testing.T) {
 	require.Equal(t, 1, redeemRepo.calls)
 	require.NotNil(t, users[0].NextBalanceResetAt)
 	require.WithinDuration(t, NextBalanceResetAt(usedAt), *users[0].NextBalanceResetAt, time.Second)
+	require.NotNil(t, users[0].LastBalanceResetValue)
+	require.Equal(t, 80.0, *users[0].LastBalanceResetValue)
 }
 
 func TestAdminService_GetUser_PopulatesNextBalanceResetAt(t *testing.T) {
@@ -229,7 +231,7 @@ func TestAdminService_GetUser_PopulatesNextBalanceResetAt(t *testing.T) {
 	userRepo := &userRepoStubForListUsers{}
 	userRepo.user = &User{ID: 8, Email: "detail@example.com"}
 	redeemRepo := &latestBalanceResetAtRepoStub{
-		latest: map[int64]time.Time{8: usedAt},
+		latest: map[int64]LatestBalanceReset{8: {UsedAt: usedAt, Value: 50}},
 	}
 	svc := &adminServiceImpl{userRepo: userRepo, redeemCodeRepo: redeemRepo}
 
@@ -237,6 +239,8 @@ func TestAdminService_GetUser_PopulatesNextBalanceResetAt(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, user.NextBalanceResetAt)
 	require.WithinDuration(t, NextBalanceResetAt(usedAt), *user.NextBalanceResetAt, time.Second)
+	require.NotNil(t, user.LastBalanceResetValue)
+	require.Equal(t, 50.0, *user.LastBalanceResetValue)
 }
 
 func TestAdminService_ListUsers_SkipsNextBalanceResetWhenRepoLacksReader(t *testing.T) {

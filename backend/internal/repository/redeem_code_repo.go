@@ -386,20 +386,16 @@ func (r *redeemCodeRepository) ListByUserPaginated(ctx context.Context, userID i
 	return redeemCodeEntitiesToService(codes), paginationResultFromTotal(int64(total), params), nil
 }
 
-// LatestBalanceResetAtByUserIDs returns the latest used_at of a used
-// balance_reset code for each requested user. Users with no such redemption
-// are omitted from the map.
-func (r *redeemCodeRepository) LatestBalanceResetAtByUserIDs(ctx context.Context, userIDs []int64) (map[int64]time.Time, error) {
-	result := make(map[int64]time.Time, len(userIDs))
+// LatestBalanceResetByUserIDs returns the newest used balance_reset code
+// (used_at + face value) for each requested user. Users with no such
+// redemption are omitted from the map.
+func (r *redeemCodeRepository) LatestBalanceResetByUserIDs(ctx context.Context, userIDs []int64) (map[int64]service.LatestBalanceReset, error) {
+	result := make(map[int64]service.LatestBalanceReset, len(userIDs))
 	if len(userIDs) == 0 {
 		return result, nil
 	}
 
-	var rows []struct {
-		UsedBy *int64    `json:"used_by"`
-		Max    time.Time `json:"max"`
-	}
-	err := r.client.RedeemCode.Query().
+	codes, err := r.client.RedeemCode.Query().
 		Where(
 			redeemcode.TypeEQ(service.RedeemTypeBalanceReset),
 			redeemcode.StatusEQ(service.StatusUsed),
@@ -407,17 +403,19 @@ func (r *redeemCodeRepository) LatestBalanceResetAtByUserIDs(ctx context.Context
 			redeemcode.UsedAtNotNil(),
 			redeemcode.UsedByIn(userIDs...),
 		).
-		GroupBy(redeemcode.FieldUsedBy).
-		Aggregate(dbent.Max(redeemcode.FieldUsedAt)).
-		Scan(ctx, &rows)
+		All(ctx)
 	if err != nil {
 		return nil, err
 	}
-	for _, row := range rows {
-		if row.UsedBy == nil {
+	for _, code := range codes {
+		if code.UsedBy == nil || code.UsedAt == nil {
 			continue
 		}
-		result[*row.UsedBy] = row.Max.UTC()
+		usedAt := code.UsedAt.UTC()
+		prev, ok := result[*code.UsedBy]
+		if !ok || usedAt.After(prev.UsedAt) {
+			result[*code.UsedBy] = service.LatestBalanceReset{UsedAt: usedAt, Value: code.Value}
+		}
 	}
 	return result, nil
 }

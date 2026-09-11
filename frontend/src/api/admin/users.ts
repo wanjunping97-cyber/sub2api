@@ -188,6 +188,21 @@ export async function updateBalance(
 }
 
 /**
+ * Replace user balance like a balance_reset redeem and start a new 7-day cycle.
+ */
+export async function resetBalance(
+  id: number,
+  value: number,
+  notes?: string
+): Promise<AdminUser> {
+  const { data } = await apiClient.post<AdminUser>(`/admin/users/${id}/balance-reset`, {
+    value,
+    notes: notes || ''
+  })
+  return data
+}
+
+/**
  * Update user concurrency
  * @param id - User ID
  * @param concurrency - New concurrency limit
@@ -408,6 +423,7 @@ export const usersAPI = {
   update,
   delete: deleteUser,
   updateBalance,
+  resetBalance,
   updateConcurrency,
   batchUpdateLimits,
   toggleStatus,

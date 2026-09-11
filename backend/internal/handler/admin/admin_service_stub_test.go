@@ -200,6 +200,19 @@ func (s *stubAdminService) UpdateUserBalance(ctx context.Context, userID int64, 
 	return &user, nil
 }
 
+func (s *stubAdminService) ResetUserBalance(ctx context.Context, userID int64, value float64, notes string) (*service.User, error) {
+	now := time.Now()
+	next := service.NextBalanceResetAt(now)
+	user := service.User{
+		ID:                    userID,
+		Balance:               value,
+		Status:                service.StatusActive,
+		NextBalanceResetAt:    &next,
+		LastBalanceResetValue: &value,
+	}
+	return &user, nil
+}
+
 func (s *stubAdminService) BatchUpdateConcurrency(ctx context.Context, userIDs []int64, value int, mode string) (int, error) {
 	return len(userIDs), nil
 }

@@ -107,6 +107,8 @@ export interface AdminUser extends User {
   last_used_at?: string | null
   // 最近一次重置余额码兑换时间 + 7 天，未兑换过则为空
   next_balance_reset_at?: string | null
+  // 最近一次重置余额码（或管理员执行重置）的面值，用作下次执行重置的默认额度
+  last_balance_reset_value?: number | null
   // 用户专属分组倍率配置 (group_id -> rate_multiplier)
   group_rates?: Record<number, number>
   // 为 true 时该用户仅可使用 allowed_groups 中列出的公开分组。

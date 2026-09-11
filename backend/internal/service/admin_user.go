@@ -67,15 +67,15 @@ func (s *adminServiceImpl) ListUsers(ctx context.Context, page, pageSize int, fi
 
 // latestBalanceResetAtReader is implemented by the redeem-code repository.
 // Optional so existing RedeemCodeRepository stubs do not need a new method.
-type latestBalanceResetAtReader interface {
-	LatestBalanceResetAtByUserIDs(ctx context.Context, userIDs []int64) (map[int64]time.Time, error)
+type latestBalanceResetReader interface {
+	LatestBalanceResetByUserIDs(ctx context.Context, userIDs []int64) (map[int64]LatestBalanceReset, error)
 }
 
 func (s *adminServiceImpl) attachNextBalanceResetAt(ctx context.Context, users []User) {
 	if s.redeemCodeRepo == nil || len(users) == 0 {
 		return
 	}
-	reader, ok := s.redeemCodeRepo.(latestBalanceResetAtReader)
+	reader, ok := s.redeemCodeRepo.(latestBalanceResetReader)
 	if !ok {
 		return
 	}
@@ -83,18 +83,20 @@ func (s *adminServiceImpl) attachNextBalanceResetAt(ctx context.Context, users [
 	for i := range users {
 		userIDs = append(userIDs, users[i].ID)
 	}
-	usedAtByUser, err := reader.LatestBalanceResetAtByUserIDs(ctx, userIDs)
+	resetByUser, err := reader.LatestBalanceResetByUserIDs(ctx, userIDs)
 	if err != nil {
 		logger.LegacyPrintf("service.admin", "failed to load next_balance_reset_at: err=%v", err)
 		return
 	}
 	for i := range users {
-		usedAt, ok := usedAtByUser[users[i].ID]
+		reset, ok := resetByUser[users[i].ID]
 		if !ok {
 			continue
 		}
-		next := NextBalanceResetAt(usedAt)
+		next := NextBalanceResetAt(reset.UsedAt)
 		users[i].NextBalanceResetAt = &next
+		value := reset.Value
+		users[i].LastBalanceResetValue = &value
 	}
 }
 
@@ -126,6 +128,7 @@ func (s *adminServiceImpl) GetUser(ctx context.Context, id int64) (*User, error)
 	attached := []User{*user}
 	s.attachNextBalanceResetAt(ctx, attached)
 	user.NextBalanceResetAt = attached[0].NextBalanceResetAt
+	user.LastBalanceResetValue = attached[0].LastBalanceResetValue
 	// 加载用户专属分组倍率
 	if s.userGroupRateRepo != nil {
 		rates, err := s.userGroupRateRepo.GetByUserID(ctx, id)
@@ -618,6 +621,55 @@ func (s *adminServiceImpl) UpdateUserBalance(ctx context.Context, userID int64, 
 	}
 
 	return user, nil
+}
+
+func (s *adminServiceImpl) ResetUserBalance(ctx context.Context, userID int64, value float64, notes string) (*User, error) {
+	if value <= 0 {
+		return nil, infraerrors.BadRequest("REDEEM_CODE_INVALID", "balance reset value must be greater than zero")
+	}
+	if _, err := s.userRepo.GetByID(ctx, userID); err != nil {
+		return nil, err
+	}
+
+	if _, err := s.userRepo.SetBalance(ctx, userID, value); err != nil {
+		return nil, err
+	}
+
+	if s.authCacheInvalidator != nil {
+		s.authCacheInvalidator.InvalidateAuthCacheByUserID(ctx, userID)
+	}
+	if s.billingCacheService != nil {
+		go func() {
+			cacheCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := s.billingCacheService.InvalidateUserBalance(cacheCtx, userID); err != nil {
+				logger.LegacyPrintf("service.admin", "invalidate user balance cache failed: user_id=%d err=%v", userID, err)
+			}
+		}()
+	}
+
+	if s.redeemCodeRepo != nil {
+		code, err := GenerateRedeemCode()
+		if err != nil {
+			logger.LegacyPrintf("service.admin", "failed to generate balance_reset redeem code: %v", err)
+		} else {
+			now := time.Now()
+			record := &RedeemCode{
+				Code:   code,
+				Type:   RedeemTypeBalanceReset,
+				Value:  value,
+				Status: StatusUsed,
+				UsedBy: &userID,
+				UsedAt: &now,
+				Notes:  notes,
+			}
+			if err := s.redeemCodeRepo.Create(ctx, record); err != nil {
+				logger.LegacyPrintf("service.admin", "failed to create balance_reset redeem code: user_id=%d err=%v", userID, err)
+			}
+		}
+	}
+
+	return s.GetUser(ctx, userID)
 }
 
 func (s *adminServiceImpl) tryAccrueAffiliateRebateForAdminRecharge(ctx context.Context, userID int64, operation string, amount float64) {
