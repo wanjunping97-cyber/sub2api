@@ -136,6 +136,11 @@ func (h *RedeemHandler) Generate(c *gin.Context) {
 		return
 	}
 
+	if req.Type == service.RedeemTypeBalanceReset && req.Value <= 0 {
+		response.BadRequest(c, "value must be greater than zero for balance_reset type")
+		return
+	}
+
 	expiresAt, err := resolveRedeemCodeExpiresAt(req.ExpiresAt, req.ExpiresInDays)
 	if err != nil {
 		response.ErrorFrom(c, err)

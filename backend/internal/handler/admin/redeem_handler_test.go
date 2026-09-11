@@ -127,6 +127,30 @@ func TestCreateAndRedeem_SubscriptionValidParamsPassValidation(t *testing.T) {
 		"valid subscription params should pass validation")
 }
 
+func postGenerateValidation(t *testing.T, handler *RedeemHandler, body any) int {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	jsonBytes, err := json.Marshal(body)
+	require.NoError(t, err)
+	c.Request, _ = http.NewRequest(http.MethodPost, "/api/v1/admin/redeem-codes/generate", bytes.NewReader(jsonBytes))
+	c.Request.Header.Set("Content-Type", "application/json")
+	handler.Generate(c)
+	return w.Code
+}
+
+func TestGenerate_BalanceResetRequiresPositiveValue(t *testing.T) {
+	h := &RedeemHandler{adminService: newStubAdminService()}
+	code := postGenerateValidation(t, h, map[string]any{
+		"count": 1,
+		"type":  "balance_reset",
+		"value": 0,
+	})
+	assert.Equal(t, http.StatusBadRequest, code)
+}
+
 func TestCreateAndRedeem_BalanceResetRequiresPositiveValue(t *testing.T) {
 	h := newCreateAndRedeemHandler()
 

@@ -217,7 +217,7 @@ func (s *RedeemService) GenerateCodes(ctx context.Context, req GenerateCodesRequ
 		codeType = RedeemTypeBalance
 	}
 	if codeType == RedeemTypeBalanceReset && req.Value <= 0 {
-		return nil, errors.New("balance_reset type requires a positive value")
+		return nil, infraerrors.BadRequest("REDEEM_CODE_INVALID", "balance_reset type requires a positive value")
 	}
 
 	// 邀请码类型的 value 设为 0
@@ -264,7 +264,7 @@ func (s *RedeemService) CreateCode(ctx context.Context, code *RedeemCode) error 
 		code.Type = RedeemTypeBalance
 	}
 	if code.Type == RedeemTypeBalanceReset && code.Value <= 0 {
-		return errors.New("balance_reset type requires a positive value")
+		return infraerrors.BadRequest("REDEEM_CODE_INVALID", "balance_reset type requires a positive value")
 	}
 	if code.Type != RedeemTypeInvitation && code.Value == 0 {
 		return errors.New("value must not be zero")

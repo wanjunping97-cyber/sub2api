@@ -1258,7 +1258,7 @@ func (s *adminServiceImpl) GenerateRedeemCodes(ctx context.Context, input *Gener
 	}
 
 	if input.Type == RedeemTypeBalanceReset && input.Value <= 0 {
-		return nil, errors.New("balance_reset type requires a positive value")
+		return nil, infraerrors.BadRequest("REDEEM_CODE_INVALID", "balance_reset type requires a positive value")
 	}
 
 	// 如果是订阅类型，验证必须有 GroupID

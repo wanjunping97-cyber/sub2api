@@ -129,8 +129,12 @@ func TestGenerateAndCreateCodesRejectNonPositiveBalanceReset(t *testing.T) {
 	svc := NewRedeemService(nil, nil, nil, nil, nil, nil, nil, nil)
 
 	_, err := svc.GenerateCodes(ctx, GenerateCodesRequest{Count: 1, Type: RedeemTypeBalanceReset, Value: -5})
-	require.EqualError(t, err, "balance_reset type requires a positive value")
+	require.Error(t, err)
+	require.True(t, infraerrors.IsBadRequest(err))
+	require.Equal(t, "REDEEM_CODE_INVALID", infraerrors.Reason(err))
 
 	err = svc.CreateCode(ctx, &RedeemCode{Code: "RESET-NEG", Type: RedeemTypeBalanceReset, Value: 0})
-	require.EqualError(t, err, "balance_reset type requires a positive value")
+	require.Error(t, err)
+	require.True(t, infraerrors.IsBadRequest(err))
+	require.Equal(t, "REDEEM_CODE_INVALID", infraerrors.Reason(err))
 }
