@@ -119,9 +119,11 @@
                 'badge',
                 value === 'balance'
                   ? 'badge-success'
-                  : value === 'subscription'
+                  : value === 'balance_reset'
                     ? 'badge-warning'
-                    : 'badge-primary'
+                    : value === 'subscription'
+                      ? 'badge-warning'
+                      : 'badge-primary'
               ]"
             >
               {{ t('admin.redeem.types.' + value) }}
@@ -130,7 +132,7 @@
 
           <template #cell-value="{ value, row }">
             <span class="text-sm font-medium text-gray-900 dark:text-white">
-              <template v-if="row.type === 'balance'">${{ value.toFixed(2) }}</template>
+              <template v-if="isBalanceAmountType(row.type)">${{ value.toFixed(2) }}</template>
               <template v-else-if="row.type === 'subscription'">
                 {{ row.validity_days || 30 }} {{ t('admin.redeem.days') }}
                 <span v-if="row.group" class="ml-1 text-xs text-gray-500 dark:text-gray-400"
@@ -291,7 +293,7 @@
             <div v-if="generateForm.type !== 'subscription' && generateForm.type !== 'invitation'">
               <label class="input-label">
                 {{
-                  generateForm.type === 'balance'
+                  isBalanceAmountType(generateForm.type)
                     ? t('admin.redeem.amount')
                     : t('admin.redeem.columns.value')
                 }}
@@ -299,11 +301,17 @@
               <input
                 v-model.number="generateForm.value"
                 type="number"
-                :step="generateForm.type === 'balance' ? '0.01' : '1'"
-                :min="generateForm.type === 'balance' ? '0.01' : '1'"
+                :step="isBalanceAmountType(generateForm.type) ? '0.01' : '1'"
+                :min="isBalanceAmountType(generateForm.type) ? '0.01' : '1'"
                 required
                 class="input"
               />
+              <p
+                v-if="generateForm.type === 'balance_reset'"
+                class="mt-2 text-sm text-amber-700 dark:text-amber-300"
+              >
+                {{ t('admin.redeem.balanceResetHint') }}
+              </p>
             </div>
             <!-- 邀请码类型：显示提示信息 -->
             <div v-if="generateForm.type === 'invitation'" class="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
@@ -739,8 +747,11 @@ const columns = computed<Column[]>(() => [
   { key: 'actions', label: t('admin.redeem.columns.actions') }
 ])
 
+const isBalanceAmountType = (type: string) => type === 'balance' || type === 'balance_reset'
+
 const typeOptions = computed(() => [
   { value: 'balance', label: t('admin.redeem.balance') },
+  { value: 'balance_reset', label: t('admin.redeem.balanceReset') },
   { value: 'concurrency', label: t('admin.redeem.concurrency') },
   { value: 'subscription', label: t('admin.redeem.subscription') },
   { value: 'invitation', label: t('admin.redeem.invitation') }
@@ -749,6 +760,7 @@ const typeOptions = computed(() => [
 const filterTypeOptions = computed(() => [
   { value: '', label: t('admin.redeem.allTypes') },
   { value: 'balance', label: t('admin.redeem.balance') },
+  { value: 'balance_reset', label: t('admin.redeem.balanceReset') },
   { value: 'concurrency', label: t('admin.redeem.concurrency') },
   { value: 'subscription', label: t('admin.redeem.subscription') },
   { value: 'invitation', label: t('admin.redeem.invitation') }
@@ -1029,6 +1041,10 @@ const handleGenerateCodes = async () => {
   // 订阅类型必须选择分组
   if (generateForm.type === 'subscription' && !generateForm.group_id) {
     appStore.showError(t('admin.redeem.groupRequired'))
+    return
+  }
+  if (generateForm.type === 'balance_reset' && (!Number.isFinite(generateForm.value) || generateForm.value <= 0)) {
+    appStore.showError(t('admin.redeem.form.balanceResetHint'))
     return
   }
 

@@ -28,7 +28,7 @@
 ### 1) 一步完成创建并兑换
 `POST /api/v1/admin/redeem-codes/create-and-redeem`
 
-用途：原子完成“创建兑换码 + 兑换到指定用户”。
+用途：原子完成“创建兑换码 + 兑换到指定用户”。支付到账必须使用 `type: "balance"`（累加充值）。不要用 `balance_reset`：该类型会把用户当前余额覆盖为面值，仅用于管理员手工发放、由用户自行兑换的重置码。
 
 请求头：
 - `x-api-key`
@@ -148,7 +148,7 @@ Note: Admin JWT can also access admin routes, but Admin API Key is recommended f
 ### 1) Create and Redeem in one step
 `POST /api/v1/admin/redeem-codes/create-and-redeem`
 
-Use case: atomically create a redeem code and redeem it to a target user.
+Use case: atomically create a redeem code and redeem it to a target user. Payment fulfillment must keep `type: "balance"` (additive top-up). Do not use `balance_reset` here: that type replaces the user's current balance with the face value and is only for codes you hand out for the user to redeem later.
 
 Headers:
 - `x-api-key`

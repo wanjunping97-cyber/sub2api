@@ -718,7 +718,7 @@ export default {
   // Redeem
   redeem: {
     title: 'Redeem Code',
-    description: 'Enter your redeem code to add balance or increase concurrency',
+    description: 'Enter your redeem code to add or reset balance, or increase concurrency',
     currentBalance: 'Current Balance',
     concurrency: 'Concurrency',
     requests: 'requests',
@@ -730,6 +730,7 @@ export default {
     redeemSuccess: 'Code Redeemed Successfully!',
     redeemFailed: 'Redemption Failed',
     added: 'Added',
+    resetTo: 'Balance reset to',
     concurrentRequests: 'concurrent requests',
     newBalance: 'New Balance',
     newConcurrency: 'New Concurrency',
@@ -738,9 +739,11 @@ export default {
     codeRule2: 'Codes may add balance, increase concurrency, or grant trial access',
     codeRule3: 'Contact support if you have issues redeeming a code',
     codeRule4: 'Balance and concurrency updates are immediate',
+    codeRule5: 'A reset-balance code clears the old balance and sets it to the code amount',
     recentActivity: 'Recent Activity',
     historyWillAppear: 'Your redemption history will appear here',
     balanceAddedRedeem: 'Balance Added (Redeem)',
+    balanceResetRedeem: 'Balance Reset (Redeem)',
     balanceAddedAffiliate: 'Balance Added (Affiliate Transfer)',
     balanceAddedAdmin: 'Balance Added (Admin)',
     balanceDeductedAdmin: 'Balance Deducted (Admin)',

@@ -199,6 +199,7 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize) || 1)
 const typeOptions = computed(() => [
   { value: '', label: t('admin.users.allTypes') },
   { value: 'balance', label: t('admin.users.typeBalance') },
+  { value: 'balance_reset', label: t('admin.users.typeBalanceReset') },
   { value: 'affiliate_balance', label: t('admin.users.typeAffiliateBalance') },
   { value: 'admin_balance', label: t('admin.users.typeAdminBalance') },
   { value: 'concurrency', label: t('admin.users.typeConcurrency') },
@@ -239,7 +240,8 @@ const loadHistory = async (page: number) => {
 const isAdminType = (type: string) => type === 'admin_balance' || type === 'admin_concurrency'
 
 // Helper: check if balance type (includes admin_balance)
-const isBalanceType = (type: string) => type === 'balance' || type === 'admin_balance' || type === 'affiliate_balance'
+const isBalanceType = (type: string) =>
+  type === 'balance' || type === 'balance_reset' || type === 'admin_balance' || type === 'affiliate_balance'
 
 // Helper: check if subscription type
 const isSubscriptionType = (type: string) => type === 'subscription'
@@ -295,6 +297,8 @@ const getItemTitle = (item: BalanceHistoryItem) => {
   switch (item.type) {
     case 'balance':
       return t('redeem.balanceAddedRedeem')
+    case 'balance_reset':
+      return t('redeem.balanceResetRedeem')
     case 'affiliate_balance':
       return t('redeem.balanceAddedAffiliate')
     case 'admin_balance':
@@ -312,6 +316,9 @@ const getItemTitle = (item: BalanceHistoryItem) => {
 
 // Format display value
 const formatValue = (item: BalanceHistoryItem) => {
+  if (item.type === 'balance_reset') {
+    return `= $${item.value.toFixed(2)}`
+  }
   if (isBalanceType(item.type)) {
     const sign = item.value >= 0 ? '+' : ''
     return `${sign}$${item.value.toFixed(2)}`

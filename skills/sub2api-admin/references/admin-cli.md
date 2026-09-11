@@ -129,7 +129,9 @@ node scripts/sub2api-admin.js proxies all
 
 ## Redeem Codes
 
-兑换码类型包括 `balance`、`concurrency`、`subscription`、`invitation`。状态常用 `unused`、`used`、`expired`。
+兑换码类型包括 `balance`、`balance_reset`、`concurrency`、`subscription`、`invitation`。状态常用 `unused`、`used`、`expired`。
+
+`balance` 是累加充值；`balance_reset` 会在用户自行兑换后把余额覆盖为面值（旧余额清零）。支付回调请继续使用 `balance`。
 
 ### 只读
 
@@ -147,6 +149,14 @@ node scripts/sub2api-admin.js redeem-codes export --file redeem-codes.csv
 node scripts/sub2api-admin.js redeem-codes generate \
   --json '{"count":1,"type":"balance","value":10}' \
   --idempotency-key "redeem-generate-$(date +%s)"
+```
+
+重置余额码（用户自行兑换后覆盖当前余额）：
+
+```bash
+node scripts/sub2api-admin.js redeem-codes generate \
+  --json '{"count":1,"type":"balance_reset","value":100}' \
+  --idempotency-key "redeem-reset-$(date +%s)"
 ```
 
 订阅兑换码需要 `group_id` 和非零 `validity_days`：

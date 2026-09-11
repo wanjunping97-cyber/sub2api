@@ -100,3 +100,37 @@ func TestRedeemRejectsInvitationCodeBeforeTransaction(t *testing.T) {
 	require.Equal(t, StatusUnused, redeemRepo.code.Status)
 	require.Nil(t, redeemRepo.code.UsedBy)
 }
+
+func TestRedeemRejectsNonPositiveBalanceResetBeforeTransaction(t *testing.T) {
+	ctx := context.Background()
+	redeemRepo := &redeemRejectRepo{
+		code: RedeemCode{
+			ID:     2,
+			Code:   "RESET-ZERO",
+			Type:   RedeemTypeBalanceReset,
+			Value:  0,
+			Status: StatusUnused,
+		},
+	}
+	redeemService := NewRedeemService(redeemRepo, nil, nil, nil, nil, nil, nil, nil)
+
+	got, err := redeemService.Redeem(ctx, 2, redeemRepo.code.Code)
+
+	require.Nil(t, got)
+	require.Error(t, err)
+	require.True(t, infraerrors.IsBadRequest(err))
+	require.Equal(t, "REDEEM_CODE_INVALID", infraerrors.Reason(err))
+	require.False(t, redeemRepo.useCalled)
+	require.Equal(t, StatusUnused, redeemRepo.code.Status)
+}
+
+func TestGenerateAndCreateCodesRejectNonPositiveBalanceReset(t *testing.T) {
+	ctx := context.Background()
+	svc := NewRedeemService(nil, nil, nil, nil, nil, nil, nil, nil)
+
+	_, err := svc.GenerateCodes(ctx, GenerateCodesRequest{Count: 1, Type: RedeemTypeBalanceReset, Value: -5})
+	require.EqualError(t, err, "balance_reset type requires a positive value")
+
+	err = svc.CreateCode(ctx, &RedeemCode{Code: "RESET-NEG", Type: RedeemTypeBalanceReset, Value: 0})
+	require.EqualError(t, err, "balance_reset type requires a positive value")
+}

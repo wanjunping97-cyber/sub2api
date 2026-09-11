@@ -101,6 +101,9 @@
                     <p v-if="redeemResult.type === 'balance'" class="font-medium">
                       {{ t('redeem.added') }}: ${{ redeemResult.value.toFixed(2) }}
                     </p>
+                    <p v-else-if="redeemResult.type === 'balance_reset'" class="font-medium">
+                      {{ t('redeem.resetTo') }}: ${{ redeemResult.value.toFixed(2) }}
+                    </p>
                     <p v-else-if="redeemResult.type === 'concurrency'" class="font-medium">
                       {{ t('redeem.added') }}: {{ redeemResult.value }}
                       {{ t('redeem.concurrentRequests') }}
@@ -192,6 +195,7 @@
                   </span>
                 </li>
                 <li>{{ t('redeem.codeRule4') }}</li>
+                <li>{{ t('redeem.codeRule5') }}</li>
               </ul>
             </div>
           </div>
@@ -379,7 +383,7 @@ const contactInfo = ref('')
 
 // Helper functions for history display
 const isBalanceType = (type: string) => {
-  return type === 'balance' || type === 'admin_balance'
+  return type === 'balance' || type === 'balance_reset' || type === 'admin_balance'
 }
 
 const isSubscriptionType = (type: string) => {
@@ -393,6 +397,8 @@ const isAdminAdjustment = (type: string) => {
 const getHistoryItemTitle = (item: RedeemHistoryItem) => {
   if (item.type === 'balance') {
     return t('redeem.balanceAddedRedeem')
+  } else if (item.type === 'balance_reset') {
+    return t('redeem.balanceResetRedeem')
   } else if (item.type === 'admin_balance') {
     return item.value >= 0 ? t('redeem.balanceAddedAdmin') : t('redeem.balanceDeductedAdmin')
   } else if (item.type === 'concurrency') {
@@ -406,7 +412,9 @@ const getHistoryItemTitle = (item: RedeemHistoryItem) => {
 }
 
 const formatHistoryValue = (item: RedeemHistoryItem) => {
-  if (isBalanceType(item.type)) {
+  if (item.type === 'balance_reset') {
+    return `= $${item.value.toFixed(2)}`
+  } else if (isBalanceType(item.type)) {
     const sign = item.value >= 0 ? '+' : ''
     return `${sign}$${item.value.toFixed(2)}`
   } else if (isSubscriptionType(item.type)) {

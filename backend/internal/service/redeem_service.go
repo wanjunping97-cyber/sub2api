@@ -216,6 +216,9 @@ func (s *RedeemService) GenerateCodes(ctx context.Context, req GenerateCodesRequ
 	if codeType == "" {
 		codeType = RedeemTypeBalance
 	}
+	if codeType == RedeemTypeBalanceReset && req.Value <= 0 {
+		return nil, errors.New("balance_reset type requires a positive value")
+	}
 
 	// 邀请码类型的 value 设为 0
 	value := req.Value
@@ -259,6 +262,9 @@ func (s *RedeemService) CreateCode(ctx context.Context, code *RedeemCode) error 
 	}
 	if code.Type == "" {
 		code.Type = RedeemTypeBalance
+	}
+	if code.Type == RedeemTypeBalanceReset && code.Value <= 0 {
+		return errors.New("balance_reset type requires a positive value")
 	}
 	if code.Type != RedeemTypeInvitation && code.Value == 0 {
 		return errors.New("value must not be zero")
@@ -390,6 +396,34 @@ func unsupportedRedeemTypeError(codeType string) error {
 	return infraerrors.BadRequest("REDEEM_CODE_UNSUPPORTED_TYPE", fmt.Sprintf("unsupported redeem type: %s", codeType))
 }
 
+func isBalanceRedeemType(codeType string) bool {
+	return codeType == RedeemTypeBalance || codeType == RedeemTypeBalanceReset
+}
+
+func (s *RedeemService) applyRedeemBalance(ctx context.Context, userID int64, redeemCode *RedeemCode) error {
+	if redeemCode.Type == RedeemTypeBalanceReset {
+		if _, err := s.userRepo.SetBalance(ctx, userID, redeemCode.Value); err != nil {
+			return fmt.Errorf("set user balance: %w", err)
+		}
+		return nil
+	}
+
+	if redeemCode.Value < 0 {
+		if s.redeemUserRepo == nil {
+			return errors.New("user repository does not support atomic redeem balance adjustments")
+		}
+		if err := s.redeemUserRepo.ApplyRedeemBalanceAdjustment(ctx, userID, redeemCode.Value); err != nil {
+			return fmt.Errorf("update user balance: %w", err)
+		}
+		return nil
+	}
+
+	if err := s.userRepo.UpdateBalance(ctx, userID, redeemCode.Value); err != nil {
+		return fmt.Errorf("update user balance: %w", err)
+	}
+	return nil
+}
+
 // Redeem 使用兑换码
 func (s *RedeemService) Redeem(ctx context.Context, userID int64, code string) (*RedeemCode, error) {
 	return s.redeem(ctx, userID, code, enforceRedeemRateLimit)
@@ -452,7 +486,10 @@ func (s *RedeemService) redeem(ctx context.Context, userID int64, code string, r
 
 	// 验证兑换码类型的前置条件。邀请码属于注册流程，不能通过普通兑换接口使用。
 	switch redeemCode.Type {
-	case RedeemTypeBalance, RedeemTypeConcurrency:
+	case RedeemTypeBalance, RedeemTypeBalanceReset, RedeemTypeConcurrency:
+		if redeemCode.Type == RedeemTypeBalanceReset && redeemCode.Value <= 0 {
+			return nil, infraerrors.BadRequest("REDEEM_CODE_INVALID", "balance reset value must be greater than zero")
+		}
 	case RedeemTypeSubscription:
 		if redeemCode.GroupID == nil {
 			return nil, infraerrors.BadRequest("REDEEM_CODE_INVALID", "invalid subscription redeem code: missing group_id")
@@ -488,17 +525,9 @@ func (s *RedeemService) redeem(ctx context.Context, userID int64, code string, r
 
 	// 执行兑换逻辑（兑换码已被锁定，此时可安全操作）
 	switch redeemCode.Type {
-	case RedeemTypeBalance:
-		amount := redeemCode.Value
-		if amount < 0 {
-			if s.redeemUserRepo == nil {
-				return nil, errors.New("user repository does not support atomic redeem balance adjustments")
-			}
-			if err := s.redeemUserRepo.ApplyRedeemBalanceAdjustment(txCtx, userID, amount); err != nil {
-				return nil, fmt.Errorf("update user balance: %w", err)
-			}
-		} else if err := s.userRepo.UpdateBalance(txCtx, userID, amount); err != nil {
-			return nil, fmt.Errorf("update user balance: %w", err)
+	case RedeemTypeBalance, RedeemTypeBalanceReset:
+		if err := s.applyRedeemBalance(txCtx, userID, redeemCode); err != nil {
+			return nil, err
 		}
 
 	case RedeemTypeConcurrency:
@@ -549,7 +578,7 @@ func (s *RedeemService) redeem(ctx context.Context, userID int64, code string, r
 	// 事务提交成功后失效缓存
 	s.invalidateRedeemCaches(ctx, userID, redeemCode)
 
-	// 余额类正数兑换码触发邀请返利（best-effort，失败不影响兑换结果）
+	// 累加型正数余额码触发邀请返利（best-effort）。重置余额码不是增量充值，不返利。
 	if redeemCode.Type == RedeemTypeBalance && redeemCode.Value > 0 {
 		s.tryAccrueAffiliateRebateForRedeem(ctx, userID, redeemCode.Value)
 	}
@@ -566,7 +595,7 @@ func (s *RedeemService) redeem(ctx context.Context, userID int64, code string, r
 // invalidateRedeemCaches 失效兑换相关的缓存
 func (s *RedeemService) invalidateRedeemCaches(ctx context.Context, userID int64, redeemCode *RedeemCode) {
 	switch redeemCode.Type {
-	case RedeemTypeBalance:
+	case RedeemTypeBalance, RedeemTypeBalanceReset:
 		if s.authCacheInvalidator != nil {
 			s.authCacheInvalidator.InvalidateAuthCacheByUserID(ctx, userID)
 		}

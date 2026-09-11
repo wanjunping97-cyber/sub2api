@@ -722,7 +722,7 @@ export default {
   // Redeem
   redeem: {
     title: '兑换码',
-    description: '输入兑换码以充值余额或增加并发数',
+    description: '输入兑换码以充值、重置余额或增加并发数',
     currentBalance: '当前余额',
     concurrency: '并发数',
     requests: '请求',
@@ -734,6 +734,7 @@ export default {
     redeemSuccess: '兑换成功！',
     redeemFailed: '兑换失败',
     added: '已添加',
+    resetTo: '余额已重置为',
     concurrentRequests: '并发请求',
     newBalance: '新余额',
     newConcurrency: '新并发数',
@@ -742,9 +743,11 @@ export default {
     codeRule2: '兑换码可以增加余额、并发数或试用权限',
     codeRule3: '如有兑换问题，请联系客服',
     codeRule4: '余额和并发数即时更新',
+    codeRule5: '重置余额码会清空原余额，并将余额设为兑换码面值',
     recentActivity: '最近活动',
     historyWillAppear: '您的兑换历史将显示在这里',
     balanceAddedRedeem: '余额充值（兑换）',
+    balanceResetRedeem: '余额重置（兑换）',
     balanceAddedAffiliate: '余额充值（返利转入）',
     balanceAddedAdmin: '余额充值（管理员）',
     balanceDeductedAdmin: '余额扣除（管理员）',

@@ -127,6 +127,43 @@ func TestCreateAndRedeem_SubscriptionValidParamsPassValidation(t *testing.T) {
 		"valid subscription params should pass validation")
 }
 
+func TestCreateAndRedeem_BalanceResetRequiresPositiveValue(t *testing.T) {
+	h := newCreateAndRedeemHandler()
+
+	t.Run("zero", func(t *testing.T) {
+		code := postCreateAndRedeemValidation(t, h, map[string]any{
+			"code":    "test-reset-zero",
+			"type":    "balance_reset",
+			"value":   0,
+			"user_id": 1,
+		})
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+
+	t.Run("negative", func(t *testing.T) {
+		code := postCreateAndRedeemValidation(t, h, map[string]any{
+			"code":    "test-reset-negative",
+			"type":    "balance_reset",
+			"value":   -10.0,
+			"user_id": 1,
+		})
+		assert.Equal(t, http.StatusBadRequest, code)
+	})
+}
+
+func TestCreateAndRedeem_BalanceResetValidParamsPassValidation(t *testing.T) {
+	h := newCreateAndRedeemHandler()
+	code := postCreateAndRedeemValidation(t, h, map[string]any{
+		"code":    "test-reset-valid",
+		"type":    "balance_reset",
+		"value":   50.0,
+		"user_id": 1,
+	})
+
+	assert.NotEqual(t, http.StatusBadRequest, code,
+		"positive balance_reset value should pass validation")
+}
+
 func TestCreateAndRedeem_BalanceIgnoresSubscriptionFields(t *testing.T) {
 	h := newCreateAndRedeemHandler()
 	// balance 类型不传 group_id 和 validity_days，不应报 400

@@ -254,6 +254,7 @@ export default {
       },
       types: {
         balance: '余额',
+        balance_reset: '重置余额',
         concurrency: '并发数',
         subscription: '订阅',
         invitation: '邀请码',
@@ -263,10 +264,12 @@ export default {
       },
       // 用于选择器和筛选器的直接键
       balance: '余额',
+      balanceReset: '重置余额',
       concurrency: '并发数',
       subscription: '订阅',
       invitation: '邀请码',
       invitationHint: '邀请码用于限制用户注册，使用后自动标记为已使用。',
+      balanceResetHint: '用户兑换后，当前余额会被清零并设为该面值，不会累加。普通“余额”码仍是累加充值。',
       allTypes: '全部类型',
       allStatus: '全部状态',
       unused: '未使用',
@@ -336,6 +339,7 @@ export default {
         valueLabel: '面值',
         valuePlaceholder: '请输入面值',
         balanceHint: '余额金额（美元）',
+        balanceResetHint: '兑换后将余额覆盖为该金额（美元）',
         concurrencyHint: '并发数增量',
         countLabel: '数量',
         countPlaceholder: '请输入数量',

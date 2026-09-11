@@ -247,10 +247,12 @@ export default {
       allTypes: 'All Types',
       allStatus: 'All Status',
       balance: 'Balance',
+      balanceReset: 'Reset Balance',
       concurrency: 'Concurrency',
       subscription: 'Subscription',
       invitation: 'Invitation',
       invitationHint: 'Invitation codes are used to restrict user registration. They are automatically marked as used after use.',
+      balanceResetHint: "When redeemed, the user's current balance is replaced by this amount (not added). Regular Balance codes still add on top.",
       unused: 'Unused',
       used: 'Used',
       columns: {
@@ -313,6 +315,7 @@ export default {
       failedToCopy: 'Failed to copy codes',
       types: {
         balance: 'Balance',
+        balance_reset: 'Reset Balance',
         concurrency: 'Concurrency',
         subscription: 'Subscription',
         invitation: 'Invitation',
@@ -345,6 +348,7 @@ export default {
         valueLabel: 'Value',
         valuePlaceholder: 'Enter value',
         balanceHint: 'Balance amount (USD)',
+        balanceResetHint: 'Redeeming replaces the current balance with this amount (USD)',
         concurrencyHint: 'Concurrency increment',
         countLabel: 'Count',
         countPlaceholder: 'Enter count',

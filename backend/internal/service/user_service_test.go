@@ -25,6 +25,9 @@ import (
 type mockUserRepo struct {
 	updateBalanceErr         error
 	updateBalanceFn          func(ctx context.Context, id int64, amount float64) error
+	updateBalanceCalls       int
+	setBalanceFn             func(ctx context.Context, id int64, value float64) (BalanceChange, error)
+	setBalanceCalls          int
 	deductBalanceFn          func(ctx context.Context, id int64, amount float64) error
 	deductAvailableBalanceFn func(ctx context.Context, id int64, amount float64) (float64, error)
 	getByIDUser              *User
@@ -188,6 +191,7 @@ func (m *mockUserRepo) ListWithFilters(context.Context, pagination.PaginationPar
 	return nil, nil, nil
 }
 func (m *mockUserRepo) UpdateBalance(ctx context.Context, id int64, amount float64) error {
+	m.updateBalanceCalls++
 	if m.updateBalanceFn != nil {
 		return m.updateBalanceFn(ctx, id, amount)
 	}
@@ -217,6 +221,10 @@ func (m *mockUserRepo) AdjustBalance(ctx context.Context, id int64, delta float6
 }
 
 func (m *mockUserRepo) SetBalance(ctx context.Context, id int64, value float64) (BalanceChange, error) {
+	m.setBalanceCalls++
+	if m.setBalanceFn != nil {
+		return m.setBalanceFn(ctx, id, value)
+	}
 	panic("unexpected SetBalance call")
 }
 func (m *mockUserRepo) UpdateConcurrency(context.Context, int64, int) error { return nil }
