@@ -133,6 +133,26 @@ func (_u *RedeemCodeUpdate) ClearUsedAt() *RedeemCodeUpdate {
 	return _u
 }
 
+// SetNextResetAt sets the "next_reset_at" field.
+func (_u *RedeemCodeUpdate) SetNextResetAt(v time.Time) *RedeemCodeUpdate {
+	_u.mutation.SetNextResetAt(v)
+	return _u
+}
+
+// SetNillableNextResetAt sets the "next_reset_at" field if the given value is not nil.
+func (_u *RedeemCodeUpdate) SetNillableNextResetAt(v *time.Time) *RedeemCodeUpdate {
+	if v != nil {
+		_u.SetNextResetAt(*v)
+	}
+	return _u
+}
+
+// ClearNextResetAt clears the value of the "next_reset_at" field.
+func (_u *RedeemCodeUpdate) ClearNextResetAt() *RedeemCodeUpdate {
+	_u.mutation.ClearNextResetAt()
+	return _u
+}
+
 // SetNotes sets the "notes" field.
 func (_u *RedeemCodeUpdate) SetNotes(v string) *RedeemCodeUpdate {
 	_u.mutation.SetNotes(v)
@@ -335,6 +355,12 @@ func (_u *RedeemCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 	if _u.mutation.UsedAtCleared() {
 		_spec.ClearField(redeemcode.FieldUsedAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.NextResetAt(); ok {
+		_spec.SetField(redeemcode.FieldNextResetAt, field.TypeTime, value)
+	}
+	if _u.mutation.NextResetAtCleared() {
+		_spec.ClearField(redeemcode.FieldNextResetAt, field.TypeTime)
+	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(redeemcode.FieldNotes, field.TypeString, value)
 	}
@@ -531,6 +557,26 @@ func (_u *RedeemCodeUpdateOne) SetNillableUsedAt(v *time.Time) *RedeemCodeUpdate
 // ClearUsedAt clears the value of the "used_at" field.
 func (_u *RedeemCodeUpdateOne) ClearUsedAt() *RedeemCodeUpdateOne {
 	_u.mutation.ClearUsedAt()
+	return _u
+}
+
+// SetNextResetAt sets the "next_reset_at" field.
+func (_u *RedeemCodeUpdateOne) SetNextResetAt(v time.Time) *RedeemCodeUpdateOne {
+	_u.mutation.SetNextResetAt(v)
+	return _u
+}
+
+// SetNillableNextResetAt sets the "next_reset_at" field if the given value is not nil.
+func (_u *RedeemCodeUpdateOne) SetNillableNextResetAt(v *time.Time) *RedeemCodeUpdateOne {
+	if v != nil {
+		_u.SetNextResetAt(*v)
+	}
+	return _u
+}
+
+// ClearNextResetAt clears the value of the "next_reset_at" field.
+func (_u *RedeemCodeUpdateOne) ClearNextResetAt() *RedeemCodeUpdateOne {
+	_u.mutation.ClearNextResetAt()
 	return _u
 }
 
@@ -765,6 +811,12 @@ func (_u *RedeemCodeUpdateOne) sqlSave(ctx context.Context) (_node *RedeemCode, 
 	}
 	if _u.mutation.UsedAtCleared() {
 		_spec.ClearField(redeemcode.FieldUsedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.NextResetAt(); ok {
+		_spec.SetField(redeemcode.FieldNextResetAt, field.TypeTime, value)
+	}
+	if _u.mutation.NextResetAtCleared() {
+		_spec.ClearField(redeemcode.FieldNextResetAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(redeemcode.FieldNotes, field.TypeString, value)

@@ -188,16 +188,18 @@ export async function updateBalance(
 }
 
 /**
- * Replace user balance like a balance_reset redeem and start a new 7-day cycle.
+ * Replace user balance like a balance_reset redeem and start a new reset cycle.
  */
 export async function resetBalance(
   id: number,
   value: number,
-  notes?: string
+  notes?: string,
+  nextResetAt?: string
 ): Promise<AdminUser> {
   const { data } = await apiClient.post<AdminUser>(`/admin/users/${id}/balance-reset`, {
     value,
-    notes: notes || ''
+    notes: notes || '',
+    next_reset_at: nextResetAt || undefined
   })
   return data
 }

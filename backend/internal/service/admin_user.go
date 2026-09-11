@@ -93,7 +93,7 @@ func (s *adminServiceImpl) attachNextBalanceResetAt(ctx context.Context, users [
 		if !ok {
 			continue
 		}
-		next := NextBalanceResetAt(reset.UsedAt)
+		next := ResolveNextBalanceResetAt(reset.UsedAt, reset.NextResetAt)
 		users[i].NextBalanceResetAt = &next
 		value := reset.Value
 		users[i].LastBalanceResetValue = &value
@@ -623,7 +623,7 @@ func (s *adminServiceImpl) UpdateUserBalance(ctx context.Context, userID int64, 
 	return user, nil
 }
 
-func (s *adminServiceImpl) ResetUserBalance(ctx context.Context, userID int64, value float64, notes string) (*User, error) {
+func (s *adminServiceImpl) ResetUserBalance(ctx context.Context, userID int64, value float64, notes string, nextResetAt *time.Time) (*User, error) {
 	if value <= 0 {
 		return nil, infraerrors.BadRequest("REDEEM_CODE_INVALID", "balance reset value must be greater than zero")
 	}
@@ -655,13 +655,14 @@ func (s *adminServiceImpl) ResetUserBalance(ctx context.Context, userID int64, v
 		} else {
 			now := time.Now()
 			record := &RedeemCode{
-				Code:   code,
-				Type:   RedeemTypeBalanceReset,
-				Value:  value,
-				Status: StatusUsed,
-				UsedBy: &userID,
-				UsedAt: &now,
-				Notes:  notes,
+				Code:        code,
+				Type:        RedeemTypeBalanceReset,
+				Value:       value,
+				Status:      StatusUsed,
+				UsedBy:      &userID,
+				UsedAt:      &now,
+				NextResetAt: normalizeNextResetAt(nextResetAt),
+				Notes:       notes,
 			}
 			if err := s.redeemCodeRepo.Create(ctx, record); err != nil {
 				logger.LegacyPrintf("service.admin", "failed to create balance_reset redeem code: user_id=%d err=%v", userID, err)
@@ -670,6 +671,14 @@ func (s *adminServiceImpl) ResetUserBalance(ctx context.Context, userID int64, v
 	}
 
 	return s.GetUser(ctx, userID)
+}
+
+func normalizeNextResetAt(nextResetAt *time.Time) *time.Time {
+	if nextResetAt == nil || nextResetAt.IsZero() {
+		return nil
+	}
+	utc := nextResetAt.UTC()
+	return &utc
 }
 
 func (s *adminServiceImpl) tryAccrueAffiliateRebateForAdminRecharge(ctx context.Context, userID int64, operation string, amount float64) {
