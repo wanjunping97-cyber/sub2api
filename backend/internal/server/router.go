@@ -87,6 +87,9 @@ func SetupRouter(
 		}
 	} else {
 		settingService.SetOnUpdateCallback(refreshFrameOrigins)
+		r.NoRoute(web.NonEmbeddedFrontendFallback(func(c *gin.Context) string {
+			return settingService.GetFrontendURL(c.Request.Context())
+		}))
 	}
 
 	// 注册路由

@@ -106,6 +106,10 @@ func runSetupServer() {
 	// Serve embedded frontend if available
 	if web.HasEmbeddedFrontend() {
 		r.Use(web.ServeEmbeddedFrontend())
+	} else {
+		r.NoRoute(web.NonEmbeddedFrontendFallback(func(*gin.Context) string {
+			return strings.TrimSpace(os.Getenv("SERVER_FRONTEND_URL"))
+		}))
 	}
 
 	// Get server address from config.yaml or environment variables (SERVER_HOST, SERVER_PORT)
