@@ -105,6 +105,8 @@ export interface AdminUser extends User {
   // 管理员备注（普通用户接口不返回）
   notes: string
   last_used_at?: string | null
+  // 最近一次重置余额码兑换时间 + 7 天，未兑换过则为空
+  next_balance_reset_at?: string | null
   // 用户专属分组倍率配置 (group_id -> rate_multiplier)
   group_rates?: Record<number, number>
   // 为 true 时该用户仅可使用 allowed_groups 中列出的公开分组。

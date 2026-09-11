@@ -45,6 +45,9 @@ type AdminUser struct {
 
 	Notes      string     `json:"notes"`
 	LastUsedAt *time.Time `json:"last_used_at"`
+	// NextBalanceResetAt is used_at of the latest used balance_reset code + 7 days.
+	// Nil when the user has never redeemed a reset code.
+	NextBalanceResetAt *time.Time `json:"next_balance_reset_at"`
 	// GroupRates 用户专属分组倍率配置
 	// map[groupID]rateMultiplier
 	GroupRates map[int64]float64 `json:"group_rates,omitempty"`
@@ -508,7 +511,9 @@ type RedeemCode struct {
 	Status    string     `json:"status"`
 	UsedBy    *int64     `json:"used_by"`
 	UsedAt    *time.Time `json:"used_at"`
-	CreatedAt time.Time  `json:"created_at"`
+	// NextBalanceResetAt is populated for used balance_reset codes: used_at + 7 days.
+	NextBalanceResetAt *time.Time `json:"next_balance_reset_at,omitempty"`
+	CreatedAt          time.Time  `json:"created_at"`
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 
 	GroupID      *int64 `json:"group_id"`

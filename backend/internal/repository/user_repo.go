@@ -11,6 +11,7 @@ import (
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/ent/apikey"
+	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
 	"github.com/Wei-Shaw/sub2api/ent/authidentity"
 	"github.com/Wei-Shaw/sub2api/ent/authidentitychannel"
 	dbgroup "github.com/Wei-Shaw/sub2api/ent/group"
@@ -555,6 +556,10 @@ func (r *userRepository) ListWithFilters(ctx context.Context, params pagination.
 		))
 	}
 
+	if due := strings.ToLower(strings.TrimSpace(filters.BalanceResetDue)); due == service.BalanceResetDueOverdue || due == service.BalanceResetDueSoon {
+		q = q.Where(userBalanceResetDuePredicate(due))
+	}
+
 	if filters.APIKeyGroupID > 0 {
 		// 按"API Key 实际绑定的分组"过滤：用户只要有任意一个未软删除的 API Key
 		// 绑定到该分组即命中（EXISTS 语义）。
@@ -652,6 +657,9 @@ func userListOrder(params pagination.PaginationParams) []func(*entsql.Selector) 
 
 	if sortBy == "last_used_at" {
 		return userLastUsedAtOrder(sortOrder)
+	}
+	if sortBy == "next_balance_reset_at" {
+		return userNextBalanceResetAtOrder(sortOrder)
 	}
 
 	var field string
@@ -756,6 +764,58 @@ func (r *userRepository) GetLatestUsedAtByUserID(ctx context.Context, userID int
 		return nil, err
 	}
 	return latestByUserID[userID], nil
+}
+
+func userBalanceResetNextAtExpr(userIDCol string) string {
+	return fmt.Sprintf(
+		"(SELECT MAX(%s) FROM %s WHERE %s = %s AND %s = '%s' AND %s = '%s' AND %s IS NOT NULL) + INTERVAL '%d days'",
+		redeemcode.FieldUsedAt,
+		redeemcode.Table,
+		redeemcode.FieldUsedBy,
+		userIDCol,
+		redeemcode.FieldType,
+		service.RedeemTypeBalanceReset,
+		redeemcode.FieldStatus,
+		service.StatusUsed,
+		redeemcode.FieldUsedAt,
+		service.BalanceResetCycleDays(),
+	)
+}
+
+func userBalanceResetDuePredicate(due string) predicate.User {
+	return func(s *entsql.Selector) {
+		expr := userBalanceResetNextAtExpr(s.C(dbuser.FieldID))
+		switch due {
+		case service.BalanceResetDueOverdue:
+			s.Where(entsql.ExprP(expr + " <= NOW()"))
+		case service.BalanceResetDueSoon:
+			s.Where(entsql.ExprP(fmt.Sprintf(
+				"%s > NOW() AND %s <= NOW() + INTERVAL '%d days'",
+				expr,
+				expr,
+				service.BalanceResetDueSoonDays(),
+			)))
+		}
+	}
+}
+
+func userNextBalanceResetAtOrder(sortOrder string) []func(*entsql.Selector) {
+	orderExpr := func(direction, nulls string, tieOrder func(string) string) func(*entsql.Selector) {
+		return func(s *entsql.Selector) {
+			expr := userBalanceResetNextAtExpr(s.C(dbuser.FieldID))
+			s.OrderExpr(entsql.Expr(expr + " " + direction + " NULLS " + nulls))
+			s.OrderBy(tieOrder(s.C(dbuser.FieldID)))
+		}
+	}
+
+	if sortOrder == pagination.SortOrderAsc {
+		return []func(*entsql.Selector){
+			orderExpr("ASC", "FIRST", entsql.Asc),
+		}
+	}
+	return []func(*entsql.Selector){
+		orderExpr("DESC", "LAST", entsql.Desc),
+	}
 }
 
 func userLastUsedAtOrder(sortOrder string) []func(*entsql.Selector) {

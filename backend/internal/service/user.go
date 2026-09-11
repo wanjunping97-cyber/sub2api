@@ -35,9 +35,13 @@ type User struct {
 	LastLoginAt          *time.Time
 	LastActiveAt         *time.Time
 	LastUsedAt           *time.Time
-	CreatedAt            time.Time
-	UpdatedAt            time.Time
-	DeletedAt            *time.Time // 非 nil 表示用户已软删除
+	// NextBalanceResetAt is derived from the latest used balance_reset
+	// redeem code: used_at + 7 days. Nil when the user has never redeemed one.
+	// Admin-facing reminder only; not persisted on the users row.
+	NextBalanceResetAt *time.Time
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	DeletedAt          *time.Time // 非 nil 表示用户已软删除
 
 	// GroupRates 用户专属分组倍率配置
 	// map[groupID]rateMultiplier

@@ -20,19 +20,21 @@ func TestUserHandlerListIncludesActivityFieldsAndSortParams(t *testing.T) {
 	lastLoginAt := time.Date(2026, 4, 20, 8, 0, 0, 0, time.UTC)
 	lastActiveAt := lastLoginAt.Add(30 * time.Minute)
 	lastUsedAt := lastLoginAt.Add(90 * time.Minute)
+	nextResetAt := lastUsedAt.Add(7 * 24 * time.Hour)
 
 	adminSvc := newStubAdminService()
 	adminSvc.users = []service.User{
 		{
-			ID:           7,
-			Email:        "activity@example.com",
-			Username:     "activity-user",
-			Role:         service.RoleUser,
-			Status:       service.StatusActive,
-			LastActiveAt: &lastActiveAt,
-			LastUsedAt:   &lastUsedAt,
-			CreatedAt:    lastLoginAt.Add(-24 * time.Hour),
-			UpdatedAt:    lastLoginAt,
+			ID:                 7,
+			Email:              "activity@example.com",
+			Username:           "activity-user",
+			Role:               service.RoleUser,
+			Status:             service.StatusActive,
+			LastActiveAt:       &lastActiveAt,
+			LastUsedAt:         &lastUsedAt,
+			NextBalanceResetAt: &nextResetAt,
+			CreatedAt:          lastLoginAt.Add(-24 * time.Hour),
+			UpdatedAt:          lastLoginAt,
 		},
 	}
 	handler := NewUserHandler(adminSvc, nil, nil, nil, nil, nil, nil)
@@ -56,8 +58,9 @@ func TestUserHandlerListIncludesActivityFieldsAndSortParams(t *testing.T) {
 		Code int `json:"code"`
 		Data struct {
 			Items []struct {
-				LastActiveAt *time.Time `json:"last_active_at"`
-				LastUsedAt   *time.Time `json:"last_used_at"`
+				LastActiveAt       *time.Time `json:"last_active_at"`
+				LastUsedAt         *time.Time `json:"last_used_at"`
+				NextBalanceResetAt *time.Time `json:"next_balance_reset_at"`
 			} `json:"items"`
 		} `json:"data"`
 	}
@@ -66,6 +69,7 @@ func TestUserHandlerListIncludesActivityFieldsAndSortParams(t *testing.T) {
 	require.Len(t, resp.Data.Items, 1)
 	require.WithinDuration(t, lastActiveAt, *resp.Data.Items[0].LastActiveAt, time.Second)
 	require.WithinDuration(t, lastUsedAt, *resp.Data.Items[0].LastUsedAt, time.Second)
+	require.WithinDuration(t, nextResetAt, *resp.Data.Items[0].NextBalanceResetAt, time.Second)
 }
 
 func TestUserHandlerGetByIDIncludesActivityFields(t *testing.T) {
@@ -74,19 +78,21 @@ func TestUserHandlerGetByIDIncludesActivityFields(t *testing.T) {
 	lastLoginAt := time.Date(2026, 4, 20, 8, 0, 0, 0, time.UTC)
 	lastActiveAt := lastLoginAt.Add(30 * time.Minute)
 	lastUsedAt := lastLoginAt.Add(90 * time.Minute)
+	nextResetAt := lastUsedAt.Add(7 * 24 * time.Hour)
 
 	adminSvc := newStubAdminService()
 	adminSvc.users = []service.User{
 		{
-			ID:           8,
-			Email:        "detail@example.com",
-			Username:     "detail-user",
-			Role:         service.RoleUser,
-			Status:       service.StatusActive,
-			LastActiveAt: &lastActiveAt,
-			LastUsedAt:   &lastUsedAt,
-			CreatedAt:    lastLoginAt.Add(-24 * time.Hour),
-			UpdatedAt:    lastLoginAt,
+			ID:                 8,
+			Email:              "detail@example.com",
+			Username:           "detail-user",
+			Role:               service.RoleUser,
+			Status:             service.StatusActive,
+			LastActiveAt:       &lastActiveAt,
+			LastUsedAt:         &lastUsedAt,
+			NextBalanceResetAt: &nextResetAt,
+			CreatedAt:          lastLoginAt.Add(-24 * time.Hour),
+			UpdatedAt:          lastLoginAt,
 		},
 	}
 	handler := NewUserHandler(adminSvc, nil, nil, nil, nil, nil, nil)
@@ -103,12 +109,14 @@ func TestUserHandlerGetByIDIncludesActivityFields(t *testing.T) {
 	var resp struct {
 		Code int `json:"code"`
 		Data struct {
-			LastActiveAt *time.Time `json:"last_active_at"`
-			LastUsedAt   *time.Time `json:"last_used_at"`
+			LastActiveAt       *time.Time `json:"last_active_at"`
+			LastUsedAt         *time.Time `json:"last_used_at"`
+			NextBalanceResetAt *time.Time `json:"next_balance_reset_at"`
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &resp))
 	require.Equal(t, 0, resp.Code)
 	require.WithinDuration(t, lastActiveAt, *resp.Data.LastActiveAt, time.Second)
 	require.WithinDuration(t, lastUsedAt, *resp.Data.LastUsedAt, time.Second)
+	require.WithinDuration(t, nextResetAt, *resp.Data.NextBalanceResetAt, time.Second)
 }

@@ -31,20 +31,24 @@ export interface RedeemHistoryItem {
  * @returns Redemption result with updated balance or concurrency
  */
 export async function redeem(code: string): Promise<{
-  message: string
+  message?: string
   type: string
   value: number
   new_balance?: number
   new_concurrency?: number
+  used_at?: string
+  next_balance_reset_at?: string
 }> {
   const payload: RedeemCodeRequest = { code }
 
   const { data } = await apiClient.post<{
-    message: string
+    message?: string
     type: string
     value: number
     new_balance?: number
     new_concurrency?: number
+    used_at?: string
+    next_balance_reset_at?: string
   }>('/redeem', payload)
 
   return data

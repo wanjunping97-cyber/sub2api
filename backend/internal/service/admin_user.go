@@ -38,6 +38,7 @@ func (s *adminServiceImpl) ListUsers(ctx context.Context, page, pageSize int, fi
 				users[i].LastUsedAt = lastUsedByUserID[users[i].ID]
 			}
 		}
+		s.attachNextBalanceResetAt(ctx, users)
 	}
 	// 批量加载用户专属分组倍率
 	if s.userGroupRateRepo != nil && len(users) > 0 {
@@ -62,6 +63,39 @@ func (s *adminServiceImpl) ListUsers(ctx context.Context, page, pageSize int, fi
 		}
 	}
 	return users, result.Total, nil
+}
+
+// latestBalanceResetAtReader is implemented by the redeem-code repository.
+// Optional so existing RedeemCodeRepository stubs do not need a new method.
+type latestBalanceResetAtReader interface {
+	LatestBalanceResetAtByUserIDs(ctx context.Context, userIDs []int64) (map[int64]time.Time, error)
+}
+
+func (s *adminServiceImpl) attachNextBalanceResetAt(ctx context.Context, users []User) {
+	if s.redeemCodeRepo == nil || len(users) == 0 {
+		return
+	}
+	reader, ok := s.redeemCodeRepo.(latestBalanceResetAtReader)
+	if !ok {
+		return
+	}
+	userIDs := make([]int64, 0, len(users))
+	for i := range users {
+		userIDs = append(userIDs, users[i].ID)
+	}
+	usedAtByUser, err := reader.LatestBalanceResetAtByUserIDs(ctx, userIDs)
+	if err != nil {
+		logger.LegacyPrintf("service.admin", "failed to load next_balance_reset_at: err=%v", err)
+		return
+	}
+	for i := range users {
+		usedAt, ok := usedAtByUser[users[i].ID]
+		if !ok {
+			continue
+		}
+		next := NextBalanceResetAt(usedAt)
+		users[i].NextBalanceResetAt = &next
+	}
 }
 
 func (s *adminServiceImpl) loadUserGroupRatesOneByOne(ctx context.Context, users []User) {
@@ -89,6 +123,9 @@ func (s *adminServiceImpl) GetUser(ctx context.Context, id int64) (*User, error)
 	} else {
 		user.LastUsedAt = lastUsedAt
 	}
+	attached := []User{*user}
+	s.attachNextBalanceResetAt(ctx, attached)
+	user.NextBalanceResetAt = attached[0].NextBalanceResetAt
 	// 加载用户专属分组倍率
 	if s.userGroupRateRepo != nil {
 		rates, err := s.userGroupRateRepo.GetByUserID(ctx, id)

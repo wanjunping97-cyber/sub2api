@@ -122,6 +122,7 @@ type BindUserAuthIdentityChannelRequest struct {
 //   - attr[{id}]: filter by custom attribute value, e.g. attr[1]=company
 //   - group_name: fuzzy filter by allowed group name
 //   - api_key_group_id: filter by the exact group bound to the user's API keys
+//   - balance_reset_due: overdue | due_soon — filter by next_balance_reset_at
 func (h *UserHandler) List(c *gin.Context) {
 	page, pageSize := response.ParsePagination(c)
 
@@ -142,6 +143,12 @@ func (h *UserHandler) List(c *gin.Context) {
 	if raw := strings.TrimSpace(c.Query("api_key_group_id")); raw != "" {
 		if id, parseErr := strconv.ParseInt(raw, 10, 64); parseErr == nil && id > 0 {
 			filters.APIKeyGroupID = id
+		}
+	}
+	if raw := strings.TrimSpace(c.Query("balance_reset_due")); raw != "" {
+		switch raw {
+		case service.BalanceResetDueOverdue, service.BalanceResetDueSoon:
+			filters.BalanceResetDue = raw
 		}
 	}
 	sortBy := c.DefaultQuery("sort_by", "created_at")

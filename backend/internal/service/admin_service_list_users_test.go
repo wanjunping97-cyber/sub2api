@@ -166,6 +166,27 @@ func TestAdminService_ListUsers_PassesSortParams(t *testing.T) {
 	}, userRepo.listWithFiltersParams)
 }
 
+type latestBalanceResetAtRepoStub struct {
+	RedeemCodeRepository
+	latest map[int64]time.Time
+	err    error
+	calls  int
+}
+
+func (s *latestBalanceResetAtRepoStub) LatestBalanceResetAtByUserIDs(_ context.Context, userIDs []int64) (map[int64]time.Time, error) {
+	s.calls++
+	if s.err != nil {
+		return nil, s.err
+	}
+	result := make(map[int64]time.Time, len(userIDs))
+	for _, userID := range userIDs {
+		if ts, ok := s.latest[userID]; ok {
+			result[userID] = ts
+		}
+	}
+	return result, nil
+}
+
 func TestAdminService_ListUsers_PopulatesLastUsedAt(t *testing.T) {
 	lastUsed := time.Now().UTC().Add(-30 * time.Minute).Truncate(time.Second)
 	userRepo := &userRepoStubForListUsers{
@@ -182,4 +203,50 @@ func TestAdminService_ListUsers_PopulatesLastUsedAt(t *testing.T) {
 	require.Len(t, users, 1)
 	require.NotNil(t, users[0].LastUsedAt)
 	require.WithinDuration(t, lastUsed, *users[0].LastUsedAt, time.Second)
+}
+
+func TestAdminService_ListUsers_PopulatesNextBalanceResetAt(t *testing.T) {
+	usedAt := time.Date(2026, time.September, 4, 12, 0, 0, 0, time.UTC)
+	userRepo := &userRepoStubForListUsers{
+		users: []User{{ID: 101, Email: "reset@example.com"}},
+	}
+	redeemRepo := &latestBalanceResetAtRepoStub{
+		latest: map[int64]time.Time{101: usedAt},
+	}
+	svc := &adminServiceImpl{userRepo: userRepo, redeemCodeRepo: redeemRepo}
+
+	users, total, err := svc.ListUsers(context.Background(), 1, 20, UserListFilters{}, "", "")
+	require.NoError(t, err)
+	require.Equal(t, int64(1), total)
+	require.Len(t, users, 1)
+	require.Equal(t, 1, redeemRepo.calls)
+	require.NotNil(t, users[0].NextBalanceResetAt)
+	require.WithinDuration(t, NextBalanceResetAt(usedAt), *users[0].NextBalanceResetAt, time.Second)
+}
+
+func TestAdminService_GetUser_PopulatesNextBalanceResetAt(t *testing.T) {
+	usedAt := time.Date(2026, time.September, 4, 12, 0, 0, 0, time.UTC)
+	userRepo := &userRepoStubForListUsers{}
+	userRepo.user = &User{ID: 8, Email: "detail@example.com"}
+	redeemRepo := &latestBalanceResetAtRepoStub{
+		latest: map[int64]time.Time{8: usedAt},
+	}
+	svc := &adminServiceImpl{userRepo: userRepo, redeemCodeRepo: redeemRepo}
+
+	user, err := svc.GetUser(context.Background(), 8)
+	require.NoError(t, err)
+	require.NotNil(t, user.NextBalanceResetAt)
+	require.WithinDuration(t, NextBalanceResetAt(usedAt), *user.NextBalanceResetAt, time.Second)
+}
+
+func TestAdminService_ListUsers_SkipsNextBalanceResetWhenRepoLacksReader(t *testing.T) {
+	userRepo := &userRepoStubForListUsers{
+		users: []User{{ID: 101, Email: "plain@example.com"}},
+	}
+	svc := &adminServiceImpl{userRepo: userRepo}
+
+	users, _, err := svc.ListUsers(context.Background(), 1, 20, UserListFilters{}, "", "")
+	require.NoError(t, err)
+	require.Len(t, users, 1)
+	require.Nil(t, users[0].NextBalanceResetAt)
 }

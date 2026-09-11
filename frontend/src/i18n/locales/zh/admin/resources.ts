@@ -269,7 +269,7 @@ export default {
       subscription: '订阅',
       invitation: '邀请码',
       invitationHint: '邀请码用于限制用户注册，使用后自动标记为已使用。',
-      balanceResetHint: '用户兑换后，当前余额会被清零并设为该面值，不会累加。普通“余额”码仍是累加充值。',
+      balanceResetHint: '用户兑换后，当前余额会被清零并设为该面值，不会累加。同时该用户的下次自然重置时间设为 7 天后，方便你到时手动执行。普通“余额”码仍是累加充值。',
       allTypes: '全部类型',
       allStatus: '全部状态',
       unused: '未使用',

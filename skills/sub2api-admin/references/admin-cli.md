@@ -131,7 +131,7 @@ node scripts/sub2api-admin.js proxies all
 
 兑换码类型包括 `balance`、`balance_reset`、`concurrency`、`subscription`、`invitation`。状态常用 `unused`、`used`、`expired`。
 
-`balance` 是累加充值；`balance_reset` 会在用户自行兑换后把余额覆盖为面值（旧余额清零）。支付回调请继续使用 `balance`。
+`balance` 是累加充值；`balance_reset` 会在用户自行兑换后把余额覆盖为面值（旧余额清零），并把该用户的下次自然重置时间设为兑换后 7 天（管理端用户列表 `next_balance_reset_at`，用于提醒你到时手动执行）。支付回调请继续使用 `balance`。
 
 ### 只读
 

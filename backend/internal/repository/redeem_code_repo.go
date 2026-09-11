@@ -386,6 +386,42 @@ func (r *redeemCodeRepository) ListByUserPaginated(ctx context.Context, userID i
 	return redeemCodeEntitiesToService(codes), paginationResultFromTotal(int64(total), params), nil
 }
 
+// LatestBalanceResetAtByUserIDs returns the latest used_at of a used
+// balance_reset code for each requested user. Users with no such redemption
+// are omitted from the map.
+func (r *redeemCodeRepository) LatestBalanceResetAtByUserIDs(ctx context.Context, userIDs []int64) (map[int64]time.Time, error) {
+	result := make(map[int64]time.Time, len(userIDs))
+	if len(userIDs) == 0 {
+		return result, nil
+	}
+
+	var rows []struct {
+		UsedBy *int64    `json:"used_by"`
+		Max    time.Time `json:"max"`
+	}
+	err := r.client.RedeemCode.Query().
+		Where(
+			redeemcode.TypeEQ(service.RedeemTypeBalanceReset),
+			redeemcode.StatusEQ(service.StatusUsed),
+			redeemcode.UsedByNotNil(),
+			redeemcode.UsedAtNotNil(),
+			redeemcode.UsedByIn(userIDs...),
+		).
+		GroupBy(redeemcode.FieldUsedBy).
+		Aggregate(dbent.Max(redeemcode.FieldUsedAt)).
+		Scan(ctx, &rows)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		if row.UsedBy == nil {
+			continue
+		}
+		result[*row.UsedBy] = row.Max.UTC()
+	}
+	return result, nil
+}
+
 // SumPositiveBalanceByUser returns total recharged amount (sum of value > 0 where type is balance/admin_balance).
 func (r *redeemCodeRepository) SumPositiveBalanceByUser(ctx context.Context, userID int64) (float64, error) {
 	var result []struct {

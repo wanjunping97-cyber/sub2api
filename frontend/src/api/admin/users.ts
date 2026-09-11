@@ -76,6 +76,7 @@ export async function list(
     include_subscriptions?: boolean
     sort_by?: string
     sort_order?: 'asc' | 'desc'
+    balance_reset_due?: 'overdue' | 'due_soon'
   },
   options?: {
     signal?: AbortSignal
@@ -92,7 +93,8 @@ export async function list(
     api_key_group_id: filters?.api_key_group_id,
     include_subscriptions: filters?.include_subscriptions,
     sort_by: filters?.sort_by,
-    sort_order: filters?.sort_order
+    sort_order: filters?.sort_order,
+    balance_reset_due: filters?.balance_reset_due
   }
 
   // Add attribute filters as attr[id]=value

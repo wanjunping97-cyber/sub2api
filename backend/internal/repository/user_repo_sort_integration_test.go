@@ -3,6 +3,7 @@
 package repository
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -159,6 +160,73 @@ func (s *UserRepoSuite) TestListWithFilters_SortByLastUsedAtDesc_UsesUsageLogsNo
 	s.Require().Equal(rightSource.ID, users[0].ID)
 	s.Require().Equal(wrongSource.ID, users[1].ID)
 	s.Require().Equal(nilUsage.ID, users[2].ID)
+}
+
+func (s *UserRepoSuite) mustInsertUsedBalanceReset(userID int64, usedAt time.Time) {
+	s.T().Helper()
+	_, err := s.client.RedeemCode.Create().
+		SetCode(fmt.Sprintf("RESET-%d-%d", userID, usedAt.UnixNano())).
+		SetType(service.RedeemTypeBalanceReset).
+		SetValue(50).
+		SetStatus(service.StatusUsed).
+		SetUsedBy(userID).
+		SetUsedAt(usedAt.UTC()).
+		SetNotes("").
+		SetValidityDays(0).
+		Save(s.ctx)
+	s.Require().NoError(err)
+}
+
+func (s *UserRepoSuite) TestListWithFilters_SortByNextBalanceResetAtAsc() {
+	older := time.Now().Add(-10 * 24 * time.Hour).UTC().Truncate(time.Second)
+	newer := time.Now().Add(-2 * 24 * time.Hour).UTC().Truncate(time.Second)
+
+	none := s.mustCreateUser(&service.User{Email: "no-reset@example.com"})
+	early := s.mustCreateUser(&service.User{Email: "early-reset@example.com"})
+	late := s.mustCreateUser(&service.User{Email: "late-reset@example.com"})
+	s.mustInsertUsedBalanceReset(early.ID, older)
+	s.mustInsertUsedBalanceReset(late.ID, newer)
+
+	users, _, err := s.repo.ListWithFilters(s.ctx, pagination.PaginationParams{
+		Page:      1,
+		PageSize:  10,
+		SortBy:    "next_balance_reset_at",
+		SortOrder: "asc",
+	}, service.UserListFilters{})
+	s.Require().NoError(err)
+	s.Require().Len(users, 3)
+	s.Require().Equal(early.ID, users[0].ID)
+	s.Require().Equal(late.ID, users[1].ID)
+	s.Require().Equal(none.ID, users[2].ID)
+}
+
+func (s *UserRepoSuite) TestListWithFilters_BalanceResetDueOverdueAndDueSoon() {
+	overdueUsed := time.Now().Add(-8 * 24 * time.Hour).UTC().Truncate(time.Second)
+	dueSoonUsed := time.Now().Add(-6 * 24 * time.Hour).UTC().Truncate(time.Second)
+	laterUsed := time.Now().Add(-24 * time.Hour).UTC().Truncate(time.Second)
+
+	overdueUser := s.mustCreateUser(&service.User{Email: "overdue-reset@example.com"})
+	dueSoonUser := s.mustCreateUser(&service.User{Email: "duesoon-reset@example.com"})
+	laterUser := s.mustCreateUser(&service.User{Email: "later-reset@example.com"})
+	_ = s.mustCreateUser(&service.User{Email: "never-reset@example.com"})
+
+	s.mustInsertUsedBalanceReset(overdueUser.ID, overdueUsed)
+	s.mustInsertUsedBalanceReset(dueSoonUser.ID, dueSoonUsed)
+	s.mustInsertUsedBalanceReset(laterUser.ID, laterUsed)
+
+	overdue, _, err := s.repo.ListWithFilters(s.ctx, pagination.PaginationParams{
+		Page: 1, PageSize: 10, SortBy: "email", SortOrder: "asc",
+	}, service.UserListFilters{BalanceResetDue: service.BalanceResetDueOverdue})
+	s.Require().NoError(err)
+	s.Require().Len(overdue, 1)
+	s.Require().Equal(overdueUser.ID, overdue[0].ID)
+
+	dueSoon, _, err := s.repo.ListWithFilters(s.ctx, pagination.PaginationParams{
+		Page: 1, PageSize: 10, SortBy: "email", SortOrder: "asc",
+	}, service.UserListFilters{BalanceResetDue: service.BalanceResetDueSoon})
+	s.Require().NoError(err)
+	s.Require().Len(dueSoon, 1)
+	s.Require().Equal(dueSoonUser.ID, dueSoon[0].ID)
 }
 
 func TestUserRepoSortSuiteSmoke(_ *testing.T) {}

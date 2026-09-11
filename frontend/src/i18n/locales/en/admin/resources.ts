@@ -252,7 +252,7 @@ export default {
       subscription: 'Subscription',
       invitation: 'Invitation',
       invitationHint: 'Invitation codes are used to restrict user registration. They are automatically marked as used after use.',
-      balanceResetHint: "When redeemed, the user's current balance is replaced by this amount (not added). Regular Balance codes still add on top.",
+      balanceResetHint: "When redeemed, the user's current balance is replaced by this amount (not added), and the next natural reset is scheduled 7 days later so you can run it then. Regular Balance codes still add on top.",
       unused: 'Unused',
       used: 'Used',
       columns: {

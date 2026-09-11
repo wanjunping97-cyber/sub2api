@@ -104,6 +104,12 @@
                     <p v-else-if="redeemResult.type === 'balance_reset'" class="font-medium">
                       {{ t('redeem.resetTo') }}: ${{ redeemResult.value.toFixed(2) }}
                     </p>
+                    <p
+                      v-if="redeemResult.type === 'balance_reset' && redeemResult.next_balance_reset_at"
+                      class="font-medium"
+                    >
+                      {{ t('redeem.nextResetAt', { time: formatDateTime(redeemResult.next_balance_reset_at) }) }}
+                    </p>
                     <p v-else-if="redeemResult.type === 'concurrency'" class="font-medium">
                       {{ t('redeem.added') }}: {{ redeemResult.value }}
                       {{ t('redeem.concurrentRequests') }}
@@ -196,6 +202,7 @@
                 </li>
                 <li>{{ t('redeem.codeRule4') }}</li>
                 <li>{{ t('redeem.codeRule5') }}</li>
+                <li>{{ t('redeem.codeRule6') }}</li>
               </ul>
             </div>
           </div>
@@ -366,13 +373,14 @@ const user = computed(() => authStore.user)
 const redeemCode = ref('')
 const submitting = ref(false)
 const redeemResult = ref<{
-  message: string
+  message?: string
   type: string
   value: number
   new_balance?: number
   new_concurrency?: number
   group_name?: string
   validity_days?: number
+  next_balance_reset_at?: string
 } | null>(null)
 const errorMessage = ref('')
 

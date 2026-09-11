@@ -51,3 +51,32 @@ func TestAdminUserList_ParsesAPIKeyGroupID(t *testing.T) {
 		})
 	}
 }
+
+func TestAdminUserList_ParsesBalanceResetDue(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	cases := []struct {
+		name  string
+		query string
+		want  string
+	}{
+		{"overdue", "?balance_reset_due=overdue", service.BalanceResetDueOverdue},
+		{"due soon", "?balance_reset_due=due_soon", service.BalanceResetDueSoon},
+		{"missing", "", ""},
+		{"unknown ignored", "?balance_reset_due=tomorrow", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			stub := &listUsersFilterStub{AdminService: newStubAdminService()}
+			r := gin.New()
+			h := NewUserHandler(stub, nil, nil, nil, nil, nil, nil)
+			r.GET("/admin/users", h.List)
+
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(http.MethodGet, "/admin/users"+tc.query, nil)
+			r.ServeHTTP(w, req)
+
+			require.Equal(t, http.StatusOK, w.Code)
+			require.Equal(t, tc.want, stub.captured.BalanceResetDue)
+		})
+	}
+}

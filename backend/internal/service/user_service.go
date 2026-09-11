@@ -82,6 +82,10 @@ type UserListFilters struct {
 	// IncludeDeleted 为 true 时绕过软删除过滤，返回含已删除（deleted_at 非空）的用户。
 	// 仅供 /admin/usage 的 SearchUsers 端点使用，其他列表调用方不要设置。
 	IncludeDeleted bool
+	// BalanceResetDue filters users by the derived next_balance_reset_at
+	// (latest used balance_reset.used_at + 7 days). Empty = no filter.
+	// Accepted values: overdue, due_soon.
+	BalanceResetDue string
 }
 
 // UserUpdateFields 声明 UserRepository.Update 允许写回的列。

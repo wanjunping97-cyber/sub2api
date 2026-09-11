@@ -48,6 +48,19 @@
               />
             </div>
 
+            <!-- Next natural reset filter -->
+            <div v-if="visibleFilters.has('balanceResetDue')" class="w-full sm:w-40">
+              <Select
+                v-model="filters.balanceResetDue"
+                :options="[
+                  { value: '', label: t('admin.users.allBalanceResetDue') },
+                  { value: 'overdue', label: t('admin.users.balanceResetDueOverdue') },
+                  { value: 'due_soon', label: t('admin.users.balanceResetDueSoon') }
+                ]"
+                @change="applyFilter"
+              />
+            </div>
+
             <!-- Group Filter (visible when enabled) -->
             <div v-if="visibleFilters.has('group')" class="w-full sm:w-44">
               <Select
@@ -593,6 +606,25 @@
             </span>
           </template>
 
+          <template #cell-next_balance_reset_at="{ value }">
+            <div v-if="!value" class="text-sm text-gray-500 dark:text-dark-400">-</div>
+            <div v-else class="flex flex-col gap-0.5">
+              <span class="text-sm text-gray-700 dark:text-gray-300">{{ formatDateTime(value) }}</span>
+              <span
+                v-if="nextResetTone(value) === 'overdue'"
+                class="inline-flex w-fit rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300"
+              >
+                {{ t('admin.users.nextResetOverdue') }}
+              </span>
+              <span
+                v-else-if="nextResetTone(value) === 'due_soon'"
+                class="inline-flex w-fit rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+              >
+                {{ t('admin.users.nextResetDueSoon') }}
+              </span>
+            </div>
+          </template>
+
           <template #cell-last_active_at="{ value }">
             <span class="text-sm text-gray-500 dark:text-dark-400">
               {{ value ? formatDateTime(value) : '-' }}
@@ -881,6 +913,7 @@ const allColumns = computed<Column[]>(() => [
   { key: 'status', label: t('admin.users.columns.status'), sortable: true },
   { key: 'last_active_at', label: t('admin.users.columns.lastActive'), sortable: true },
   { key: 'last_used_at', label: t('admin.users.columns.lastUsed'), sortable: true },
+  { key: 'next_balance_reset_at', label: t('admin.users.columns.nextReset'), sortable: true },
   { key: 'created_at', label: t('admin.users.columns.created'), sortable: true },
   { key: 'actions', label: t('admin.users.columns.actions'), sortable: false }
 ])
@@ -1019,13 +1052,25 @@ const columns = computed<Column[]>(() =>
   )
 )
 
+const NEXT_RESET_DUE_SOON_MS = 2 * 24 * 60 * 60 * 1000
+
+const nextResetTone = (value: string | null | undefined): 'overdue' | 'due_soon' | 'ok' | 'none' => {
+  if (!value) return 'none'
+  const next = new Date(value).getTime()
+  if (Number.isNaN(next)) return 'none'
+  const delta = next - Date.now()
+  if (delta <= 0) return 'overdue'
+  if (delta <= NEXT_RESET_DUE_SOON_MS) return 'due_soon'
+  return 'ok'
+}
+
 const users = ref<AdminUser[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
 const USER_SORT_STORAGE_KEY = 'admin-users-table-sort'
 const loadInitialSortState = (): { sort_by: string; sort_order: 'asc' | 'desc' } => {
   const fallback = { sort_by: 'created_at', sort_order: 'desc' as 'asc' | 'desc' }
-  const sortable = new Set(['email', 'id', 'username', 'role', 'balance', 'concurrency', 'status', 'last_used_at', 'last_active_at', 'created_at'])
+  const sortable = new Set(['email', 'id', 'username', 'role', 'balance', 'concurrency', 'status', 'last_used_at', 'next_balance_reset_at', 'last_active_at', 'created_at'])
   try {
     const raw = localStorage.getItem(USER_SORT_STORAGE_KEY)
     if (!raw) return fallback
@@ -1109,6 +1154,7 @@ const apiKeyGroupFilterOptions = computed(() =>
 const filters = reactive({
   role: '',
   status: '',
+  balanceResetDue: '',
   group: '',  // group name for fuzzy match, '' = all
   apiKeyGroup: null as number | null  // group id bound to the user's API keys, null = all
 })
@@ -1139,6 +1185,7 @@ const filterableAttributes = computed(() =>
 const builtInFilters = computed(() => [
   { key: 'role', name: t('admin.users.columns.role'), type: 'select' as const },
   { key: 'status', name: t('admin.users.columns.status'), type: 'select' as const },
+  { key: 'balanceResetDue', name: t('admin.users.balanceResetDueFilter'), type: 'select' as const },
   { key: 'group', name: t('admin.users.authorizedGroupFilter'), type: 'select' as const },
   { key: 'apiKeyGroup', name: t('admin.users.apiKeyGroupFilter'), type: 'select' as const }
 ])
@@ -1158,6 +1205,7 @@ const loadSavedFilters = () => {
       const parsed = JSON.parse(savedValues)
       if (parsed.role) filters.role = parsed.role
       if (parsed.status) filters.status = parsed.status
+      if (parsed.balanceResetDue) filters.balanceResetDue = parsed.balanceResetDue
       if (parsed.group) filters.group = parsed.group
       if (typeof parsed.apiKeyGroup === 'number') filters.apiKeyGroup = parsed.apiKeyGroup
       if (parsed.attributes) {
@@ -1178,6 +1226,7 @@ const saveFiltersToStorage = () => {
     const values = {
       role: filters.role,
       status: filters.status,
+      balanceResetDue: filters.balanceResetDue,
       group: filters.group,
       apiKeyGroup: filters.apiKeyGroup,
       attributes: activeAttributeFilters
@@ -1580,6 +1629,7 @@ const loadUsers = async () => {
       {
         role: filters.role as any,
         status: filters.status as any,
+        balance_reset_due: (filters.balanceResetDue || undefined) as 'overdue' | 'due_soon' | undefined,
         search: searchQuery.value || undefined,
         group_name: filters.group || undefined,
         api_key_group_id: filters.apiKeyGroup ?? undefined,
@@ -1672,6 +1722,7 @@ const toggleBuiltInFilter = (key: string) => {
     visibleFilters.delete(key)
     if (key === 'role') filters.role = ''
     if (key === 'status') filters.status = ''
+    if (key === 'balanceResetDue') filters.balanceResetDue = ''
     if (key === 'group') filters.group = ''
     if (key === 'apiKeyGroup') filters.apiKeyGroup = null
   } else {

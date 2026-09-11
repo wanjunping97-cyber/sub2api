@@ -72,6 +72,7 @@ func UserFromServiceAdmin(u *service.User) *AdminUser {
 		User:                 *base,
 		Notes:                u.Notes,
 		LastUsedAt:           u.LastUsedAt,
+		NextBalanceResetAt:   u.NextBalanceResetAt,
 		GroupRates:           u.GroupRates,
 		RestrictPublicGroups: u.RestrictPublicGroups,
 	}
@@ -657,6 +658,11 @@ func redeemCodeFromServiceBase(rc *service.RedeemCode) RedeemCode {
 	// why they were charged or credited by admin
 	if (rc.Type == "admin_balance" || rc.Type == "admin_concurrency") && rc.Notes != "" {
 		out.Notes = &rc.Notes
+	}
+
+	if rc.Type == service.RedeemTypeBalanceReset && rc.UsedAt != nil {
+		next := service.NextBalanceResetAt(*rc.UsedAt)
+		out.NextBalanceResetAt = &next
 	}
 
 	return out
