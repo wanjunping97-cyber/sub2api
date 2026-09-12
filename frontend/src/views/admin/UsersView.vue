@@ -29,6 +29,7 @@
                 :options="[
                   { value: '', label: t('admin.users.allRoles') },
                   { value: 'admin', label: t('admin.users.admin') },
+                  { value: 'readonly', label: t('admin.users.readonly') },
                   { value: 'user', label: t('admin.users.user') }
                 ]"
                 @change="applyFilter"
@@ -246,6 +247,7 @@
               </div>
               <!-- Attributes Config Button -->
               <button
+                v-if="canWriteAdmin"
                 @click="showAttributesModal = true"
                 class="btn btn-secondary px-2 md:px-3"
                 :title="t('admin.users.attributes.configButton')"
@@ -256,7 +258,7 @@
             </div>
 
             <button
-              v-if="selectedCount > 0"
+              v-if="canWriteAdmin && selectedCount > 0"
               class="btn btn-secondary flex-1 md:flex-initial"
               data-test="bulk-edit-limits"
               @click="showBulkEditModal = true"
@@ -266,7 +268,7 @@
             </button>
 
             <!-- Create User Button (full width on mobile, auto width on desktop) -->
-            <button @click="showCreateModal = true" class="btn btn-primary flex-1 md:flex-initial">
+            <button v-if="canWriteAdmin" @click="showCreateModal = true" class="btn btn-primary flex-1 md:flex-initial">
               <Icon name="plus" size="md" class="mr-2" />
               {{ t('admin.users.createUser') }}
             </button>
@@ -339,7 +341,7 @@
           </template>
 
           <template #cell-role="{ value }">
-            <span :class="['badge', value === 'admin' ? 'badge-purple' : 'badge-gray']">
+            <span :class="['badge', value === 'admin' ? 'badge-purple' : value === 'readonly' ? 'badge-warning' : 'badge-gray']">
               {{ t('admin.users.roles.' + value) }}
             </span>
           </template>
@@ -635,6 +637,7 @@
             <div class="flex items-center gap-1">
               <!-- Edit Button -->
               <button
+                v-if="canWriteAdmin"
                 @click="handleEdit(row)"
                 class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-primary-600 dark:hover:bg-dark-700 dark:hover:text-primary-400"
               >
@@ -644,7 +647,7 @@
 
               <!-- Toggle Status Button (not for admin) -->
               <button
-                v-if="row.role !== 'admin'"
+                v-if="canWriteAdmin && row.role !== 'admin'"
                 @click="handleToggleStatus(row)"
                 :class="[
                   'flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors',
@@ -674,8 +677,8 @@
             <EmptyState
               :title="t('admin.users.noUsersYet')"
               :description="t('admin.users.createFirstUser')"
-              :action-text="t('admin.users.createUser')"
-              @action="showCreateModal = true"
+              :action-text="canWriteAdmin ? t('admin.users.createUser') : undefined"
+              @action="canWriteAdmin ? showCreateModal = true : undefined"
             />
           </template>
         </DataTable>
@@ -706,6 +709,7 @@
             <template v-if="user.id === activeMenuId">
               <!-- View API Keys -->
               <button
+                v-if="canWriteAdmin"
                 @click="handleViewApiKeys(user); closeActionMenu()"
                 class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
               >
@@ -715,6 +719,7 @@
 
               <!-- Allowed Groups -->
               <button
+                v-if="canWriteAdmin"
                 @click="handleAllowedGroups(user); closeActionMenu()"
                 class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
               >
@@ -722,10 +727,11 @@
                 {{ t('admin.users.groups') }}
               </button>
 
-              <div class="my-1 border-t border-gray-100 dark:border-dark-700"></div>
+              <div v-if="canWriteAdmin" class="my-1 border-t border-gray-100 dark:border-dark-700"></div>
 
               <!-- Deposit -->
               <button
+                v-if="canWriteAdmin"
                 @click="handleDeposit(user); closeActionMenu()"
                 class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
               >
@@ -735,6 +741,7 @@
 
               <!-- Withdraw -->
               <button
+                v-if="canWriteAdmin"
                 @click="handleWithdraw(user); closeActionMenu()"
                 class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
               >
@@ -746,6 +753,7 @@
 
               <!-- Run natural balance reset -->
               <button
+                v-if="canWriteAdmin"
                 @click="handleResetBalance(user); closeActionMenu()"
                 class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
               >
@@ -755,6 +763,7 @@
 
               <!-- Platform Quotas -->
               <button
+                v-if="canWriteAdmin"
                 @click="handlePlatformQuota(user); closeActionMenu()"
                 class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
               >
@@ -775,7 +784,7 @@
 
               <!-- Delete (not for admin) -->
               <button
-                v-if="user.role !== 'admin'"
+                v-if="canWriteAdmin && user.role !== 'admin'"
                 @click="handleDelete(user); closeActionMenu()"
                 class="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
               >
@@ -807,7 +816,7 @@
     <UserAllowedGroupsModal :show="showAllowedGroupsModal" :user="allowedGroupsUser" @close="closeAllowedGroupsModal" @success="loadUsers" />
     <UserBalanceModal :show="showBalanceModal" :user="balanceUser" :operation="balanceOperation" @close="closeBalanceModal" @success="loadUsers" />
     <UserBalanceResetModal :show="showResetBalanceModal" :user="resetBalanceUser" @close="closeResetBalanceModal" @success="handleResetBalanceSuccess" />
-    <UserBalanceHistoryModal :show="showBalanceHistoryModal" :user="balanceHistoryUser" @close="closeBalanceHistoryModal" @deposit="handleDepositFromHistory" @withdraw="handleWithdrawFromHistory" @reset="handleResetFromHistory" />
+    <UserBalanceHistoryModal :show="showBalanceHistoryModal" :user="balanceHistoryUser" :hide-actions="!canWriteAdmin" @close="closeBalanceHistoryModal" @deposit="handleDepositFromHistory" @withdraw="handleWithdrawFromHistory" @reset="handleResetFromHistory" />
     <GroupReplaceModal :show="showGroupReplaceModal" :user="groupReplaceUser" :old-group="groupReplaceOldGroup" :all-groups="allGroups" @close="closeGroupReplaceModal" @success="loadUsers" />
     <UserAttributesConfigModal :show="showAttributesModal" @close="handleAttributesModalClose" />
   </AppLayout>
@@ -817,12 +826,15 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
+import { useAuthStore } from '@/stores/auth'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 import { useTableSelection } from '@/composables/useTableSelection'
 import { formatDateTime } from '@/utils/format'
 import Icon from '@/components/icons/Icon.vue'
 
 const { t } = useI18n()
+const authStore = useAuthStore()
+const canWriteAdmin = computed(() => authStore.isReadOnlyAdmin !== true)
 import { adminAPI } from '@/api/admin'
 import type { AdminUser, AdminGroup, UserAttributeDefinition } from '@/types'
 import type { BatchUserUsageStats } from '@/api/admin/dashboard'

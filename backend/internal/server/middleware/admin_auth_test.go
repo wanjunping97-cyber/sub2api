@@ -259,3 +259,47 @@ func (s *stubUserRepo) DisableTotp(ctx context.Context, userID int64) error {
 func (s *stubUserRepo) GetByIDIncludeDeleted(ctx context.Context, id int64) (*service.User, error) {
 	panic("unexpected GetByIDIncludeDeleted call")
 }
+
+func TestAdminAuthJWTAllowsReadonlyAdmin(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	cfg := &config.Config{JWT: config.JWTConfig{Secret: "test-secret", ExpireHour: 1}}
+	authService := service.NewAuthService(nil, nil, nil, nil, cfg, nil, nil, nil, nil, nil, nil, nil, nil)
+
+	readonly := &service.User{
+		ID:           9,
+		Email:        "readonly@example.com",
+		Role:         service.RoleReadonly,
+		Status:       service.StatusActive,
+		TokenVersion: 1,
+		Concurrency:  1,
+	}
+	userRepo := &stubUserRepo{
+		getByID: func(ctx context.Context, id int64) (*service.User, error) {
+			if id != readonly.ID {
+				return nil, service.ErrUserNotFound
+			}
+			clone := *readonly
+			return &clone, nil
+		},
+	}
+	userService := service.NewUserService(userRepo, nil, nil, nil)
+
+	router := gin.New()
+	router.Use(gin.HandlerFunc(NewAdminAuthMiddleware(authService, userService, nil, nil)))
+	router.GET("/t", func(c *gin.Context) {
+		role, ok := GetUserRoleFromContext(c)
+		require.True(t, ok)
+		require.Equal(t, service.RoleReadonly, role)
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	token, err := authService.GenerateToken(context.Background(), readonly)
+	require.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/t", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+}
