@@ -340,6 +340,21 @@ describe('useAuthStore', () => {
       const store = useAuthStore()
       expect(store.isAdmin).toBe(false)
     })
+
+    it('只读管理员可以进入后台但不能写入', async () => {
+      const readonlyResponse = {
+        ...fakeAuthResponse,
+        user: { ...fakeAdminUser, role: 'readonly' as const }
+      }
+      mockLogin.mockResolvedValue(readonlyResponse)
+      const store = useAuthStore()
+
+      await store.login({ email: 'readonly@example.com', password: '123456' })
+
+      expect(store.isAdmin).toBe(true)
+      expect(store.isReadOnlyAdmin).toBe(true)
+      expect(store.canWriteAdmin).toBe(false)
+    })
   })
 
   // --- refreshUser ---

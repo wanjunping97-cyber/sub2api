@@ -781,6 +781,7 @@ export default {
     securityTitle: 'Security Settings',
     securityDescription: 'Password, two-factor authentication, and alerts live in the right rail.',
     administrator: 'Administrator',
+    readonlyAdministrator: 'Read-only administrator',
     user: 'User',
     username: 'Username',
     email: 'Email',

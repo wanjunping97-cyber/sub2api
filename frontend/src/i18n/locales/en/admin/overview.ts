@@ -1,4 +1,5 @@
 export default {
+    readonlyBanner: 'You are a read-only administrator: you can inspect account status, but cannot change data or export/view OAuth tokens, API keys, or other credentials.',
     // Dashboard
     dashboard: {
       title: 'Admin Dashboard',
@@ -486,6 +487,7 @@ export default {
       statusFilter: 'Status Filter',
       allStatuses: 'All Status',
       admin: 'Admin',
+      readonly: 'Read-only',
       user: 'User',
       disabled: 'Disabled',
       email: 'Email',
@@ -693,6 +695,7 @@ export default {
       totalRecharged: 'Total Recharged',
       roles: {
         admin: 'Admin',
+        readonly: 'Read-only admin',
         user: 'User'
       },
       // Settings Dropdowns
