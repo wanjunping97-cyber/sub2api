@@ -84,3 +84,12 @@ func TestCreateRegularUserSkipsStepUp(t *testing.T) {
 	})
 	require.Equal(t, http.StatusOK, rec.Code)
 }
+
+func TestCreateReadonlyUserSkipsStepUp(t *testing.T) {
+	router, _ := setupRoleStepUpRouter(t)
+
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/admin/users", map[string]any{
+		"email": "readonly@example.com", "password": "pass123", "role": "readonly",
+	})
+	require.Equal(t, http.StatusOK, rec.Code)
+}

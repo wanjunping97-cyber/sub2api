@@ -8,6 +8,7 @@ import (
 
 	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
+	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -77,7 +78,9 @@ func (h *ProxyHandler) List(c *gin.Context) {
 
 	out := make([]dto.AdminProxyWithAccountCount, 0, len(proxies))
 	for i := range proxies {
-		out = append(out, *dto.ProxyWithAccountCountFromServiceAdmin(&proxies[i]))
+		item := *dto.ProxyWithAccountCountFromServiceAdmin(&proxies[i])
+		redactAdminProxyPasswordIfReadonly(c, &item.AdminProxy)
+		out = append(out, item)
 	}
 	response.Paginated(c, out, total, page, pageSize)
 }
@@ -96,7 +99,9 @@ func (h *ProxyHandler) GetAll(c *gin.Context) {
 		}
 		out := make([]dto.AdminProxyWithAccountCount, 0, len(proxies))
 		for i := range proxies {
-			out = append(out, *dto.ProxyWithAccountCountFromServiceAdmin(&proxies[i]))
+			item := *dto.ProxyWithAccountCountFromServiceAdmin(&proxies[i])
+			redactAdminProxyPasswordIfReadonly(c, &item.AdminProxy)
+			out = append(out, item)
 		}
 		response.Success(c, out)
 		return
@@ -110,7 +115,9 @@ func (h *ProxyHandler) GetAll(c *gin.Context) {
 
 	out := make([]dto.AdminProxy, 0, len(proxies))
 	for i := range proxies {
-		out = append(out, *dto.ProxyFromServiceAdmin(&proxies[i]))
+		item := *dto.ProxyFromServiceAdmin(&proxies[i])
+		redactAdminProxyPasswordIfReadonly(c, &item)
+		out = append(out, item)
 	}
 	response.Success(c, out)
 }
@@ -130,7 +137,16 @@ func (h *ProxyHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, dto.ProxyFromServiceAdmin(proxy))
+	item := dto.ProxyFromServiceAdmin(proxy)
+	redactAdminProxyPasswordIfReadonly(c, item)
+	response.Success(c, item)
+}
+
+func redactAdminProxyPasswordIfReadonly(c *gin.Context, proxy *dto.AdminProxy) {
+	if proxy == nil || !middleware.IsReadOnlyAdminRequest(c) {
+		return
+	}
+	proxy.Password = ""
 }
 
 // Create handles creating a new proxy
