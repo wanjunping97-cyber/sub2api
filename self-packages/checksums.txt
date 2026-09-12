@@ -1,0 +1,2 @@
+968c58beaf26bc8984acef52bffd7b794348bc5c472a4e7d1ed58b30e4f000f0  sub2api_0.2.4-self.1_linux_amd64.tar.gz
+d0abcef27333f14e93b0a6a5c3510256abbc9b664fdf342a4d02d69a357d9dab  sub2api_0.2.4-self.1_linux_arm64.tar.gz

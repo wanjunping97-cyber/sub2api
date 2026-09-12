@@ -559,4 +559,22 @@ func (s *RedeemCodeRepoSuite) TestLatestBalanceResetByUserIDs_UsesLatestUsedRese
 	s.Require().NotContains(got, userC.ID)
 	s.Require().True(got[userA.ID].UsedAt.Equal(newer))
 	s.Require().Equal(80.0, got[userA.ID].Value)
+	s.Require().Nil(got[userA.ID].NextResetAt)
+}
+
+func (s *RedeemCodeRepoSuite) TestLatestBalanceResetByUserIDs_ReturnsCustomNextResetAt() {
+	userA := s.createUser("reset-next@example.com")
+	usedAt := time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+	next := time.Date(2026, 9, 20, 0, 0, 0, 0, time.UTC)
+
+	s.Require().NoError(s.repo.Create(s.ctx, &service.RedeemCode{
+		Code: "RESET-CUSTOM", Type: service.RedeemTypeBalanceReset, Value: 80, Status: service.StatusUsed,
+		UsedBy: &userA.ID, UsedAt: &usedAt, NextResetAt: &next,
+	}))
+
+	got, err := s.repo.LatestBalanceResetByUserIDs(s.ctx, []int64{userA.ID})
+	s.Require().NoError(err)
+	s.Require().Contains(got, userA.ID)
+	s.Require().NotNil(got[userA.ID].NextResetAt)
+	s.Require().True(got[userA.ID].NextResetAt.Equal(next))
 }

@@ -33,6 +33,7 @@ func (r *redeemCodeRepository) Create(ctx context.Context, code *service.RedeemC
 		SetNillableExpiresAt(code.ExpiresAt).
 		SetNillableUsedBy(code.UsedBy).
 		SetNillableUsedAt(code.UsedAt).
+		SetNillableNextResetAt(code.NextResetAt).
 		SetNillableGroupID(code.GroupID).
 		Save(ctx)
 	if err == nil {
@@ -60,6 +61,7 @@ func (r *redeemCodeRepository) CreateBatch(ctx context.Context, codes []service.
 			SetNillableExpiresAt(c.ExpiresAt).
 			SetNillableUsedBy(c.UsedBy).
 			SetNillableUsedAt(c.UsedAt).
+			SetNillableNextResetAt(c.NextResetAt).
 			SetNillableGroupID(c.GroupID)
 		builders = append(builders, b)
 	}
@@ -223,6 +225,11 @@ func (r *redeemCodeRepository) Update(ctx context.Context, code *service.RedeemC
 		up.SetExpiresAt(*code.ExpiresAt)
 	} else {
 		up.ClearExpiresAt()
+	}
+	if code.NextResetAt != nil {
+		up.SetNextResetAt(*code.NextResetAt)
+	} else {
+		up.ClearNextResetAt()
 	}
 
 	updated, err := up.Save(ctx)
@@ -414,7 +421,11 @@ func (r *redeemCodeRepository) LatestBalanceResetByUserIDs(ctx context.Context, 
 		usedAt := code.UsedAt.UTC()
 		prev, ok := result[*code.UsedBy]
 		if !ok || usedAt.After(prev.UsedAt) {
-			result[*code.UsedBy] = service.LatestBalanceReset{UsedAt: usedAt, Value: code.Value}
+			result[*code.UsedBy] = service.LatestBalanceReset{
+				UsedAt:      usedAt,
+				Value:       code.Value,
+				NextResetAt: utcTimePtr(code.NextResetAt),
+			}
 		}
 	}
 	return result, nil
@@ -454,6 +465,7 @@ func redeemCodeEntityToService(m *dbent.RedeemCode) *service.RedeemCode {
 		Status:       m.Status,
 		UsedBy:       m.UsedBy,
 		UsedAt:       m.UsedAt,
+		NextResetAt:  m.NextResetAt,
 		Notes:        derefString(m.Notes),
 		CreatedAt:    m.CreatedAt,
 		ExpiresAt:    m.ExpiresAt,
@@ -477,4 +489,12 @@ func redeemCodeEntitiesToService(models []*dbent.RedeemCode) []service.RedeemCod
 		}
 	}
 	return out
+}
+
+func utcTimePtr(t *time.Time) *time.Time {
+	if t == nil {
+		return nil
+	}
+	utc := t.UTC()
+	return &utc
 }

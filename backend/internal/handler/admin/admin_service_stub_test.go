@@ -200,9 +200,13 @@ func (s *stubAdminService) UpdateUserBalance(ctx context.Context, userID int64, 
 	return &user, nil
 }
 
-func (s *stubAdminService) ResetUserBalance(ctx context.Context, userID int64, value float64, notes string) (*service.User, error) {
+func (s *stubAdminService) ResetUserBalance(ctx context.Context, userID int64, value float64, notes string, nextResetAt *time.Time) (*service.User, error) {
 	now := time.Now()
 	next := service.NextBalanceResetAt(now)
+	if nextResetAt != nil && !nextResetAt.IsZero() {
+		utc := nextResetAt.UTC()
+		next = utc
+	}
 	user := service.User{
 		ID:                    userID,
 		Balance:               value,

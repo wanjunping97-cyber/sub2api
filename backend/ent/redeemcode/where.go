@@ -85,6 +85,11 @@ func UsedAt(v time.Time) predicate.RedeemCode {
 	return predicate.RedeemCode(sql.FieldEQ(FieldUsedAt, v))
 }
 
+// NextResetAt applies equality check predicate on the "next_reset_at" field. It's identical to NextResetAtEQ.
+func NextResetAt(v time.Time) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldEQ(FieldNextResetAt, v))
+}
+
 // Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
 func Notes(v string) predicate.RedeemCode {
 	return predicate.RedeemCode(sql.FieldEQ(FieldNotes, v))
@@ -423,6 +428,56 @@ func UsedAtIsNil() predicate.RedeemCode {
 // UsedAtNotNil applies the NotNil predicate on the "used_at" field.
 func UsedAtNotNil() predicate.RedeemCode {
 	return predicate.RedeemCode(sql.FieldNotNull(FieldUsedAt))
+}
+
+// NextResetAtEQ applies the EQ predicate on the "next_reset_at" field.
+func NextResetAtEQ(v time.Time) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldEQ(FieldNextResetAt, v))
+}
+
+// NextResetAtNEQ applies the NEQ predicate on the "next_reset_at" field.
+func NextResetAtNEQ(v time.Time) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldNEQ(FieldNextResetAt, v))
+}
+
+// NextResetAtIn applies the In predicate on the "next_reset_at" field.
+func NextResetAtIn(vs ...time.Time) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldIn(FieldNextResetAt, vs...))
+}
+
+// NextResetAtNotIn applies the NotIn predicate on the "next_reset_at" field.
+func NextResetAtNotIn(vs ...time.Time) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldNotIn(FieldNextResetAt, vs...))
+}
+
+// NextResetAtGT applies the GT predicate on the "next_reset_at" field.
+func NextResetAtGT(v time.Time) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldGT(FieldNextResetAt, v))
+}
+
+// NextResetAtGTE applies the GTE predicate on the "next_reset_at" field.
+func NextResetAtGTE(v time.Time) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldGTE(FieldNextResetAt, v))
+}
+
+// NextResetAtLT applies the LT predicate on the "next_reset_at" field.
+func NextResetAtLT(v time.Time) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldLT(FieldNextResetAt, v))
+}
+
+// NextResetAtLTE applies the LTE predicate on the "next_reset_at" field.
+func NextResetAtLTE(v time.Time) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldLTE(FieldNextResetAt, v))
+}
+
+// NextResetAtIsNil applies the IsNil predicate on the "next_reset_at" field.
+func NextResetAtIsNil() predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldIsNull(FieldNextResetAt))
+}
+
+// NextResetAtNotNil applies the NotNil predicate on the "next_reset_at" field.
+func NextResetAtNotNil() predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldNotNull(FieldNextResetAt))
 }
 
 // NotesEQ applies the EQ predicate on the "notes" field.

@@ -99,8 +99,9 @@ type UpdateBalanceRequest struct {
 
 // ResetBalanceRequest replaces the user's balance like a balance_reset redeem.
 type ResetBalanceRequest struct {
-	Value float64 `json:"value" binding:"required,gt=0"`
-	Notes string  `json:"notes"`
+	Value       float64    `json:"value" binding:"required,gt=0"`
+	Notes       string     `json:"notes"`
+	NextResetAt *time.Time `json:"next_reset_at"`
 }
 
 type BindUserAuthIdentityRequest struct {
@@ -429,8 +430,9 @@ func (h *UserHandler) UpdateBalance(c *gin.Context) {
 	})
 }
 
-// ResetBalance replaces the user's balance and records a used balance_reset
-// so next_balance_reset_at becomes now + 7 days.
+// ResetBalance replaces the user's balance and records a used balance_reset.
+// next_reset_at, when set, becomes the next natural reset reminder;
+// otherwise next_balance_reset_at is now + 7 days.
 // POST /api/v1/admin/users/:id/balance-reset
 func (h *UserHandler) ResetBalance(c *gin.Context) {
 	userID, err := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -453,7 +455,7 @@ func (h *UserHandler) ResetBalance(c *gin.Context) {
 		Body:   req,
 	}
 	executeAdminIdempotentJSON(c, "admin.users.balance.reset", idempotencyPayload, service.DefaultWriteIdempotencyTTL(), func(ctx context.Context) (any, error) {
-		user, execErr := h.adminService.ResetUserBalance(ctx, userID, req.Value, req.Notes)
+		user, execErr := h.adminService.ResetUserBalance(ctx, userID, req.Value, req.Notes, req.NextResetAt)
 		if execErr != nil {
 			return nil, execErr
 		}

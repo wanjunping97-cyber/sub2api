@@ -55,6 +55,11 @@ func (RedeemCode) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
+		field.Time("next_reset_at").
+			Optional().
+			Nillable().
+			Comment("Optional admin override for the next natural balance reset reminder. When empty, next reset is used_at + 7 days.").
+			SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
 		field.String("notes").
 			Optional().
 			Nillable().

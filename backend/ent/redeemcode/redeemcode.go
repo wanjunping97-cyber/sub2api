@@ -26,6 +26,8 @@ const (
 	FieldUsedBy = "used_by"
 	// FieldUsedAt holds the string denoting the used_at field in the database.
 	FieldUsedAt = "used_at"
+	// FieldNextResetAt holds the string denoting the next_reset_at field in the database.
+	FieldNextResetAt = "next_reset_at"
 	// FieldNotes holds the string denoting the notes field in the database.
 	FieldNotes = "notes"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -67,6 +69,7 @@ var Columns = []string{
 	FieldStatus,
 	FieldUsedBy,
 	FieldUsedAt,
+	FieldNextResetAt,
 	FieldNotes,
 	FieldCreatedAt,
 	FieldExpiresAt,
@@ -139,6 +142,11 @@ func ByUsedBy(opts ...sql.OrderTermOption) OrderOption {
 // ByUsedAt orders the results by the used_at field.
 func ByUsedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUsedAt, opts...).ToFunc()
+}
+
+// ByNextResetAt orders the results by the next_reset_at field.
+func ByNextResetAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNextResetAt, opts...).ToFunc()
 }
 
 // ByNotes orders the results by the notes field.

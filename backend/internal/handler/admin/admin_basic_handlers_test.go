@@ -148,6 +148,17 @@ func TestUserHandlerEndpoints(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code)
 }
 
+func TestUserHandlerResetBalanceAcceptsCustomNextResetAt(t *testing.T) {
+	router, _ := setupAdminRouter()
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/users/1/balance-reset", bytes.NewBufferString(`{"value":80,"next_reset_at":"2026-09-20T00:00:00Z"}`))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), `"next_balance_reset_at":"2026-09-20T00:00:00Z"`)
+}
+
 func TestUserHandlerResetBalanceRejectsNonPositiveValue(t *testing.T) {
 	router, _ := setupAdminRouter()
 

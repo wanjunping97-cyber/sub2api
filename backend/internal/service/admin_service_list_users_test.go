@@ -226,6 +226,24 @@ func TestAdminService_ListUsers_PopulatesNextBalanceResetAt(t *testing.T) {
 	require.Equal(t, 80.0, *users[0].LastBalanceResetValue)
 }
 
+func TestAdminService_ListUsers_UsesCustomNextResetAt(t *testing.T) {
+	usedAt := time.Date(2026, time.September, 4, 12, 0, 0, 0, time.UTC)
+	custom := time.Date(2026, time.September, 20, 0, 0, 0, 0, time.UTC)
+	userRepo := &userRepoStubForListUsers{
+		users: []User{{ID: 101, Email: "reset@example.com"}},
+	}
+	redeemRepo := &latestBalanceResetAtRepoStub{
+		latest: map[int64]LatestBalanceReset{101: {UsedAt: usedAt, Value: 80, NextResetAt: &custom}},
+	}
+	svc := &adminServiceImpl{userRepo: userRepo, redeemCodeRepo: redeemRepo}
+
+	users, _, err := svc.ListUsers(context.Background(), 1, 20, UserListFilters{}, "", "")
+	require.NoError(t, err)
+	require.Len(t, users, 1)
+	require.NotNil(t, users[0].NextBalanceResetAt)
+	require.True(t, users[0].NextBalanceResetAt.Equal(custom))
+}
+
 func TestAdminService_GetUser_PopulatesNextBalanceResetAt(t *testing.T) {
 	usedAt := time.Date(2026, time.September, 4, 12, 0, 0, 0, time.UTC)
 	userRepo := &userRepoStubForListUsers{}
