@@ -1,0 +1,80 @@
+name: Self-hosted binary release
+
+# Lightweight release for personal forks. Do not use v* tags here — those
+# trigger the full official GoReleaser workflow.
+on:
+  push:
+    tags:
+      - 'self-*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version (e.g. 0.2.4-self.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#self-}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build linux packages
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: bash backend/scripts/package-self.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: self-packages
+          path: |
+            self-packages/sub2api_${{ steps.version.outputs.version }}_linux_*.tar.gz
+            self-packages/checksums.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && format('self-{0}', steps.version.outputs.version) || github.ref_name }}
+          name: self-hosted ${{ steps.version.outputs.version }}
+          generate_release_notes: false
+          body: |
+            Prebuilt linux binaries with the embedded admin UI for this fork.
+            Replace `/opt/sub2api/sub2api` with the `sub2api` file inside the archive.
+            Do not run the official `install.sh upgrade` — that overwrites this fork with upstream.
+          files: |
+            self-packages/sub2api_${{ steps.version.outputs.version }}_linux_amd64.tar.gz
+            self-packages/sub2api_${{ steps.version.outputs.version }}_linux_arm64.tar.gz
+            self-packages/checksums.txt
