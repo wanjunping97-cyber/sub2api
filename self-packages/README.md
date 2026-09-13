@@ -48,6 +48,13 @@ sudo systemctl start sub2api
 
 启动后会自动跑数据库迁移。
 
+## 还没有安装过
+
+不要在服务器上编译。可以二选一：
+
+1. 先用官方 `install.sh` 只装一次 systemd / 目录骨架，然后立刻按上面的步骤换成这个预编译包。之后不要再跑官方 `upgrade`。
+2. 自己准备 PostgreSQL、Redis，把包里的 `sub2api` 放到 `/opt/sub2api/sub2api`，用包内 `deploy/sub2api.service` 启动。首次运行会走安装向导，或设置 `AUTO_SETUP=true` 后用环境变量自动初始化。
+
 ## Docker
 
 不要 `docker pull weishaw/sub2api:latest`。把上面的 `sub2api` 二进制挂进容器，或在内存够的机器上按仓库 Dockerfile 构建自己的镜像后再拷到服务器。
