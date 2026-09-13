@@ -3,28 +3,31 @@
 生产机内存不够时，不要在服务器上执行 `pnpm build` 或 `go build -tags embed`。
 用这里打好的 linux 包直接替换二进制。
 
-当前版本：`0.2.4-self.1`
+当前版本：`0.2.4-self.2`
 
 包含：
 
 - 重置余额兑换码 + 7 天提醒 + 管理员「执行重置」
 - 管理员可手选下次自然重置日
+- 只读管理员（可看账号状态，不能改数据，也不能导出 OAuth / API Key）
 - 嵌入管理后台（`-tags embed`），单文件即可提供前端
 
 ## 下载
 
 | 架构 | 文件 |
 | --- | --- |
-| x86_64 / amd64 | [sub2api_0.2.4-self.1_linux_amd64.tar.gz](./sub2api_0.2.4-self.1_linux_amd64.tar.gz) |
-| arm64 / aarch64 | [sub2api_0.2.4-self.1_linux_arm64.tar.gz](./sub2api_0.2.4-self.1_linux_arm64.tar.gz) |
+| x86_64 / amd64 | [sub2api_0.2.4-self.2_linux_amd64.tar.gz](./sub2api_0.2.4-self.2_linux_amd64.tar.gz) |
+| arm64 / aarch64 | [sub2api_0.2.4-self.2_linux_arm64.tar.gz](./sub2api_0.2.4-self.2_linux_arm64.tar.gz) |
 | 校验 | [checksums.txt](./checksums.txt) |
 
 不要用官方 `install.sh upgrade` 或后台「检测更新」。那会拉取 `Wei-Shaw/sub2api`，把自用功能盖掉。
 
-## systemd（`/opt/sub2api`）
+## 已有 systemd 安装（`/opt/sub2api`）
+
+把本仓库里的脚本拷到服务器后：
 
 ```bash
-sudo VERSION=0.2.4-self.1 bash deploy/upgrade-self.sh
+sudo VERSION=0.2.4-self.2 bash deploy/upgrade-self.sh
 ```
 
 或手动：
@@ -32,9 +35,9 @@ sudo VERSION=0.2.4-self.1 bash deploy/upgrade-self.sh
 ```bash
 arch=$(uname -m)
 case "$arch" in x86_64|amd64) a=amd64 ;; aarch64|arm64) a=arm64 ;; esac
-ver=0.2.4-self.1
+ver=0.2.4-self.2
 curl -fL -o /tmp/sub2api.tgz \
-  "https://github.com/wanjunping97-cyber/sub2api/raw/cursor/self-binaries-fec0/self-packages/sub2api_${ver}_linux_${a}.tar.gz"
+  "https://github.com/wanjunping97-cyber/sub2api/raw/cursor/self-package-current-fec0/self-packages/sub2api_${ver}_linux_${a}.tar.gz"
 sudo tar -xzf /tmp/sub2api.tgz -C /tmp sub2api
 sudo systemctl stop sub2api
 sudo cp /opt/sub2api/sub2api /opt/sub2api/sub2api.bak
@@ -43,7 +46,7 @@ sudo systemctl start sub2api
 /opt/sub2api/sub2api --version
 ```
 
-启动后会自动跑数据库迁移（含 `next_reset_at`）。
+启动后会自动跑数据库迁移。
 
 ## Docker
 
@@ -54,5 +57,5 @@ sudo systemctl start sub2api
 在一台内存充足的机器上：
 
 ```bash
-VERSION=0.2.4-self.1 bash backend/scripts/package-self.sh
+VERSION=0.2.4-self.2 bash backend/scripts/package-self.sh
 ```

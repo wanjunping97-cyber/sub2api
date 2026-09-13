@@ -6,9 +6,9 @@ set -euo pipefail
 
 INSTALL_DIR="${INSTALL_DIR:-/opt/sub2api}"
 SERVICE_NAME="${SERVICE_NAME:-sub2api}"
-VERSION="${VERSION:-0.2.4-self.1}"
+VERSION="${VERSION:-0.2.4-self.2}"
 REPO="${REPO:-wanjunping97-cyber/sub2api}"
-REF="${REF:-cursor/self-binaries-fec0}"
+REF="${REF:-cursor/self-package-current-fec0}"
 
 arch="$(uname -m)"
 case "$arch" in
