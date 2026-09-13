@@ -36,14 +36,15 @@ type User struct {
 	LastActiveAt         *time.Time
 	LastUsedAt           *time.Time
 	// NextBalanceResetAt is derived from the latest used balance_reset
-	// redeem code: used_at + 7 days. Nil when the user has never redeemed one.
+	// redeem code: next_reset_at if set, otherwise used_at + 7 days.
+	// Nil when the user has never redeemed one.
 	// Admin-facing reminder only; not persisted on the users row.
 	NextBalanceResetAt *time.Time
 	// LastBalanceResetValue is the face value of that latest balance_reset code.
 	LastBalanceResetValue *float64
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
-	DeletedAt          *time.Time // 非 nil 表示用户已软删除
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
+	DeletedAt             *time.Time // 非 nil 表示用户已软删除
 
 	// GroupRates 用户专属分组倍率配置
 	// map[groupID]rateMultiplier
@@ -76,6 +77,20 @@ type User struct {
 
 func (u *User) IsAdmin() bool {
 	return u.Role == RoleAdmin
+}
+
+func (u *User) IsReadonlyAdmin() bool {
+	return u.Role == RoleReadonly
+}
+
+// CanAccessAdmin reports whether the user may enter the admin panel.
+// Full admins can write; read-only admins can inspect status only.
+func (u *User) CanAccessAdmin() bool {
+	return u.IsAdmin() || u.IsReadonlyAdmin()
+}
+
+func CanAccessAdminRole(role string) bool {
+	return role == RoleAdmin || role == RoleReadonly
 }
 
 func (u *User) IsActive() bool {

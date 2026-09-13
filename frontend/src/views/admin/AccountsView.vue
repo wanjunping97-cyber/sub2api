@@ -13,6 +13,7 @@
           />
           <AccountTableActions
             :loading="loading"
+            :can-create="canWriteAdmin"
             @refresh="handleManualRefresh"
             @create="showCreate = true"
           >
@@ -83,24 +84,24 @@
                     @click.stop
                   >
                     <div class="overflow-y-auto p-2" :style="{ maxHeight: `${accountToolsDropdownPosition.maxHeight}px` }">
-                      <div class="px-2 py-2">
+                      <div v-if="canWriteAdmin" class="px-2 py-2">
                         <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
                           {{ t('admin.accounts.dataActions') }}
                         </div>
                       </div>
-                      <button class="account-tools-menu-item" @click="openSyncFromCrs">
+                      <button v-if="canWriteAdmin" class="account-tools-menu-item" @click="openSyncFromCrs">
                         <span class="account-tools-menu-icon bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
                           <Icon name="sync" size="sm" />
                         </span>
                         <span class="flex-1 text-left">{{ t('admin.accounts.syncFromCrs') }}</span>
                       </button>
-                      <button class="account-tools-menu-item" @click="openImportData">
+                      <button v-if="canWriteAdmin" class="account-tools-menu-item" @click="openImportData">
                         <span class="account-tools-menu-icon bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300">
                           <Icon name="upload" size="sm" />
                         </span>
                         <span class="flex-1 text-left">{{ t('admin.accounts.dataImport') }}</span>
                       </button>
-                      <button class="account-tools-menu-item" @click="openExportDataDialogFromMenu">
+                      <button v-if="canWriteAdmin" class="account-tools-menu-item" @click="openExportDataDialogFromMenu">
                         <span class="account-tools-menu-icon bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300">
                           <Icon name="download" size="sm" />
                         </span>
@@ -115,19 +116,19 @@
                         </span>
                       </button>
 
-                      <div class="my-2 border-t border-gray-100 dark:border-dark-700"></div>
-                      <div class="px-2 py-2">
+                      <div v-if="canWriteAdmin" class="my-2 border-t border-gray-100 dark:border-dark-700"></div>
+                      <div v-if="canWriteAdmin" class="px-2 py-2">
                         <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
                           {{ t('admin.accounts.toolActions') }}
                         </div>
                       </div>
-                      <button class="account-tools-menu-item" @click="openErrorPassthrough">
+                      <button v-if="canWriteAdmin" class="account-tools-menu-item" @click="openErrorPassthrough">
                         <span class="account-tools-menu-icon bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">
                           <Icon name="shield" size="sm" />
                         </span>
                         <span class="flex-1 text-left">{{ t('admin.errorPassthrough.title') }}</span>
                       </button>
-                      <button class="account-tools-menu-item" @click="openTLSFingerprintProfiles">
+                      <button v-if="canWriteAdmin" class="account-tools-menu-item" @click="openTLSFingerprintProfiles">
                         <span class="account-tools-menu-icon bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200">
                           <Icon name="lock" size="sm" />
                         </span>
@@ -176,6 +177,7 @@
       </template>
       <template #table>
         <AccountBulkActionsBar
+          v-if="canWriteAdmin"
           :selected-ids="selIds"
           :total-results="pagination.total"
           :selecting-all="selectingAllResults"
@@ -431,11 +433,11 @@
           </template>
           <template #cell-actions="{ row }">
             <div class="flex items-center gap-1">
-              <button @click="handleEdit(row)" class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-primary-600 dark:hover:bg-dark-700 dark:hover:text-primary-400">
+              <button v-if="canWriteAdmin" @click="handleEdit(row)" class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-primary-600 dark:hover:bg-dark-700 dark:hover:text-primary-400">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
                 <span class="text-xs">{{ t('common.edit') }}</span>
               </button>
-              <button @click="handleDelete(row)" class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400">
+              <button v-if="canWriteAdmin" @click="handleDelete(row)" class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
                 <span class="text-xs">{{ t('common.delete') }}</span>
               </button>
@@ -456,7 +458,7 @@
     <AccountTestModal :show="showTest" :account="testingAcc" @close="closeTestModal" />
     <AccountStatsModal :show="showStats" :account="statsAcc" @close="closeStatsModal" />
     <ScheduledTestsPanel :show="showSchedulePanel" :account-id="scheduleAcc?.id ?? null" :model-options="scheduleModelOptions" @close="closeSchedulePanel" />
-    <AccountActionMenu :show="menu.show" :account="menu.acc" :anchor-rect="menu.anchorRect" @close="menu.show = false" @test="handleTest" @stats="handleViewStats" @schedule="handleSchedule" @duplicate="handleDuplicateAccount" @reauth="handleReAuth" @refresh-token="handleRefresh" @recover-state="handleRecoverState" @reset-quota="handleResetQuota" @set-privacy="handleSetPrivacy" @create-spark-shadow="handleCreateSparkShadow" />
+    <AccountActionMenu :show="menu.show" :account="menu.acc" :anchor-rect="menu.anchorRect" :read-only="!canWriteAdmin" @close="menu.show = false" @test="handleTest" @stats="handleViewStats" @schedule="handleSchedule" @duplicate="handleDuplicateAccount" @reauth="handleReAuth" @refresh-token="handleRefresh" @recover-state="handleRecoverState" @reset-quota="handleResetQuota" @set-privacy="handleSetPrivacy" @create-spark-shadow="handleCreateSparkShadow" />
     <SyncFromCrsModal :show="showSync" @close="showSync = false" @synced="reload" />
     <ImportDataModal :show="showImportData" @close="showImportData = false" @imported="handleDataImported" />
     <BulkEditAccountModal
@@ -537,6 +539,7 @@ import type { Account, AccountListItem, AccountPlatform, AccountSchedulerGroupSc
 const { t } = useI18n()
 const appStore = useAppStore()
 const authStore = useAuthStore()
+const canWriteAdmin = computed(() => authStore.isReadOnlyAdmin !== true)
 
 const proxies = ref<AccountProxy[]>([])
 const groups = ref<AdminGroup[]>([])

@@ -96,15 +96,29 @@ describe('UserBalanceResetModal', () => {
     expect(wrapper.text()).not.toContain('admin.users.resetBalanceDefaultHint')
   })
 
-  it('calls resetBalance with the overlay amount and emits success', async () => {
+  it('prefills the next natural reset date to 7 days later', async () => {
+    const wrapper = await mountAndOpen(createUser({ last_balance_reset_value: 80 }))
+
+    const expected = new Date()
+    expected.setDate(expected.getDate() + 7)
+    const yyyy = expected.getFullYear()
+    const mm = String(expected.getMonth() + 1).padStart(2, '0')
+    const dd = String(expected.getDate()).padStart(2, '0')
+
+    const input = wrapper.get('[data-test="reset-next-reset-at"]').element as HTMLInputElement
+    expect(input.value).toBe(`${yyyy}-${mm}-${dd}`)
+  })
+
+  it('calls resetBalance with the overlay amount and selected next reset date', async () => {
     const wrapper = await mountAndOpen(createUser({
       last_balance_reset_value: 80
     }))
 
+    await wrapper.get('[data-test="reset-next-reset-at"]').setValue('2026-10-01')
     await wrapper.get('form').trigger('submit')
     await flushPromises()
 
-    expect(apiMocks.resetBalance).toHaveBeenCalledWith(7, 80, '')
+    expect(apiMocks.resetBalance).toHaveBeenCalledWith(7, 80, '', '2026-10-01T00:00:00.000Z')
     expect(wrapper.emitted('success')).toBeTruthy()
     expect(wrapper.emitted('close')).toBeTruthy()
   })

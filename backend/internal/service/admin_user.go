@@ -93,7 +93,7 @@ func (s *adminServiceImpl) attachNextBalanceResetAt(ctx context.Context, users [
 		if !ok {
 			continue
 		}
-		next := NextBalanceResetAt(reset.UsedAt)
+		next := ResolveNextBalanceResetAt(reset.UsedAt, reset.NextResetAt)
 		users[i].NextBalanceResetAt = &next
 		value := reset.Value
 		users[i].LastBalanceResetValue = &value
@@ -151,8 +151,8 @@ func normalizeUserRole(role, fallback string) (string, error) {
 	if role == "" {
 		return fallback, nil
 	}
-	if role != RoleAdmin && role != RoleUser {
-		return "", fmt.Errorf("invalid role: %q (must be %s or %s)", role, RoleAdmin, RoleUser)
+	if role != RoleAdmin && role != RoleReadonly && role != RoleUser {
+		return "", fmt.Errorf("invalid role: %q (must be %s, %s, or %s)", role, RoleAdmin, RoleReadonly, RoleUser)
 	}
 	return role, nil
 }
@@ -165,7 +165,7 @@ func (s *adminServiceImpl) CreateUser(ctx context.Context, input *CreateUserInpu
 		balance = s.settingService.GetDefaultBalance(ctx)
 	}
 
-	// 角色可由管理员在创建时指定(admin/user);未提供时默认 user。
+	// 角色可由管理员在创建时指定(admin/readonly/user);未提供时默认 user。
 	role, err := normalizeUserRole(input.Role, RoleUser)
 	if err != nil {
 		return nil, err
@@ -191,9 +191,9 @@ func (s *adminServiceImpl) CreateUser(ctx context.Context, input *CreateUserInpu
 		return nil, err
 	}
 	// 创建管理员属权限敏感操作，落审计日志（含操作者），便于事后追溯。
-	if user.Role == RoleAdmin {
-		logger.LegacyPrintf("service.admin", "audit: admin user created actor_admin_id=%d target_user_id=%d",
-			input.ActorAdminID, user.ID)
+	if user.CanAccessAdmin() {
+		logger.LegacyPrintf("service.admin", "audit: admin-panel user created actor_admin_id=%d target_user_id=%d role=%s",
+			input.ActorAdminID, user.ID, user.Role)
 	}
 	s.assignDefaultSubscriptions(ctx, user.ID)
 	return user, nil
@@ -289,7 +289,7 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
 		fields.Status = true
 	}
 
-	// 角色变更(admin/user);空字符串表示不修改。
+	// 角色变更(admin/readonly/user);空字符串表示不修改。
 	if input.Role != "" {
 		role, err := normalizeUserRole(input.Role, user.Role)
 		if err != nil {
@@ -297,7 +297,7 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
 		}
 		// 防锁死保护：不允许降级系统中最后一个管理员（自我降级已在 handler 层拦截，
 		// 此处兜底覆盖跨管理员互降导致零 admin 的场景）。
-		if user.Role == RoleAdmin && role == RoleUser {
+		if user.Role == RoleAdmin && role != RoleAdmin {
 			if err := s.ensureNotLastAdmin(ctx); err != nil {
 				return nil, err
 			}
@@ -623,7 +623,7 @@ func (s *adminServiceImpl) UpdateUserBalance(ctx context.Context, userID int64, 
 	return user, nil
 }
 
-func (s *adminServiceImpl) ResetUserBalance(ctx context.Context, userID int64, value float64, notes string) (*User, error) {
+func (s *adminServiceImpl) ResetUserBalance(ctx context.Context, userID int64, value float64, notes string, nextResetAt *time.Time) (*User, error) {
 	if value <= 0 {
 		return nil, infraerrors.BadRequest("REDEEM_CODE_INVALID", "balance reset value must be greater than zero")
 	}
@@ -655,13 +655,14 @@ func (s *adminServiceImpl) ResetUserBalance(ctx context.Context, userID int64, v
 		} else {
 			now := time.Now()
 			record := &RedeemCode{
-				Code:   code,
-				Type:   RedeemTypeBalanceReset,
-				Value:  value,
-				Status: StatusUsed,
-				UsedBy: &userID,
-				UsedAt: &now,
-				Notes:  notes,
+				Code:        code,
+				Type:        RedeemTypeBalanceReset,
+				Value:       value,
+				Status:      StatusUsed,
+				UsedBy:      &userID,
+				UsedAt:      &now,
+				NextResetAt: normalizeNextResetAt(nextResetAt),
+				Notes:       notes,
 			}
 			if err := s.redeemCodeRepo.Create(ctx, record); err != nil {
 				logger.LegacyPrintf("service.admin", "failed to create balance_reset redeem code: user_id=%d err=%v", userID, err)
@@ -670,6 +671,14 @@ func (s *adminServiceImpl) ResetUserBalance(ctx context.Context, userID int64, v
 	}
 
 	return s.GetUser(ctx, userID)
+}
+
+func normalizeNextResetAt(nextResetAt *time.Time) *time.Time {
+	if nextResetAt == nil || nextResetAt.IsZero() {
+		return nil
+	}
+	utc := nextResetAt.UTC()
+	return &utc
 }
 
 func (s *adminServiceImpl) tryAccrueAffiliateRebateForAdminRecharge(ctx context.Context, userID int64, operation string, amount float64) {

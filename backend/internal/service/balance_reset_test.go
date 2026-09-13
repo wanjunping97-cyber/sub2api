@@ -20,3 +20,15 @@ func TestNextBalanceResetAt_AddsSevenDaysUTC(t *testing.T) {
 	require.Equal(t, 2, BalanceResetDueSoonDays())
 	require.Equal(t, 7*24*time.Hour, BalanceResetCycle)
 }
+
+func TestResolveNextBalanceResetAt_PrefersOverride(t *testing.T) {
+	t.Parallel()
+
+	usedAt := time.Date(2026, time.September, 4, 12, 0, 0, 0, time.UTC)
+	override := time.Date(2026, time.September, 20, 0, 0, 0, 0, time.UTC)
+
+	require.True(t, ResolveNextBalanceResetAt(usedAt, &override).Equal(override))
+	require.True(t, ResolveNextBalanceResetAt(usedAt, nil).Equal(NextBalanceResetAt(usedAt)))
+	zero := time.Time{}
+	require.True(t, ResolveNextBalanceResetAt(usedAt, &zero).Equal(NextBalanceResetAt(usedAt)))
+}

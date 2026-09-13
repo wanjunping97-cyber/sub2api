@@ -74,7 +74,7 @@ func (s *balanceRedeemRepoStub) LatestBalanceResetByUserIDs(_ context.Context, u
 		if _, ok := wanted[*code.UsedBy]; !ok {
 			continue
 		}
-		result[*code.UsedBy] = LatestBalanceReset{UsedAt: *code.UsedAt, Value: code.Value}
+		result[*code.UsedBy] = LatestBalanceReset{UsedAt: *code.UsedAt, Value: code.Value, NextResetAt: code.NextResetAt}
 	}
 	return result, nil
 }
@@ -300,7 +300,7 @@ func TestAdminService_ResetUserBalance_ReplacesBalanceAndRecordsReset(t *testing
 	}
 
 	before := time.Now()
-	user, err := svc.ResetUserBalance(context.Background(), 7, 80, "natural reset")
+	user, err := svc.ResetUserBalance(context.Background(), 7, 80, "natural reset", nil)
 	require.NoError(t, err)
 	require.Equal(t, []BalanceChange{{Old: 10, New: 80}}, repo.changes)
 	require.Equal(t, 80.0, user.Balance)
@@ -334,7 +334,7 @@ func TestAdminService_ResetUserBalance_RecordsEvenWhenBalanceUnchanged(t *testin
 		authCacheInvalidator: invalidator,
 	}
 
-	user, err := svc.ResetUserBalance(context.Background(), 7, 50, "")
+	user, err := svc.ResetUserBalance(context.Background(), 7, 50, "", nil)
 	require.NoError(t, err)
 	require.Equal(t, []BalanceChange{{Old: 50, New: 50}}, repo.changes)
 	require.Equal(t, 50.0, user.Balance)
@@ -345,6 +345,25 @@ func TestAdminService_ResetUserBalance_RecordsEvenWhenBalanceUnchanged(t *testin
 	require.NotNil(t, user.NextBalanceResetAt)
 }
 
+func TestAdminService_ResetUserBalance_UsesCustomNextResetAt(t *testing.T) {
+	baseRepo := &userRepoStub{user: &User{ID: 7, Balance: 10}}
+	repo := &balanceUserRepoStub{userRepoStub: baseRepo}
+	redeemRepo := &balanceRedeemRepoStub{redeemRepoStub: &redeemRepoStub{}}
+	svc := &adminServiceImpl{
+		userRepo:       repo,
+		redeemCodeRepo: redeemRepo,
+	}
+
+	next := time.Date(2026, time.September, 20, 0, 0, 0, 0, time.UTC)
+	user, err := svc.ResetUserBalance(context.Background(), 7, 80, "custom day", &next)
+	require.NoError(t, err)
+	require.Len(t, redeemRepo.created, 1)
+	require.NotNil(t, redeemRepo.created[0].NextResetAt)
+	require.True(t, redeemRepo.created[0].NextResetAt.Equal(next))
+	require.NotNil(t, user.NextBalanceResetAt)
+	require.True(t, user.NextBalanceResetAt.Equal(next))
+}
+
 func TestAdminService_ResetUserBalance_RejectsNonPositiveValue(t *testing.T) {
 	repo := &balanceUserRepoStub{userRepoStub: &userRepoStub{user: &User{ID: 7, Balance: 10}}}
 	redeemRepo := &balanceRedeemRepoStub{redeemRepoStub: &redeemRepoStub{}}
@@ -353,7 +372,7 @@ func TestAdminService_ResetUserBalance_RejectsNonPositiveValue(t *testing.T) {
 		redeemCodeRepo: redeemRepo,
 	}
 
-	_, err := svc.ResetUserBalance(context.Background(), 7, 0, "")
+	_, err := svc.ResetUserBalance(context.Background(), 7, 0, "", nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "greater than zero")
 	require.Empty(t, repo.changes)

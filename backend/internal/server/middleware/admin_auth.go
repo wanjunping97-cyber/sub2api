@@ -197,8 +197,8 @@ func validateJWTForAdmin(
 		return false
 	}
 
-	// 检查管理员权限
-	if !user.IsAdmin() {
+	// 检查管理员权限（含只读管理员）
+	if !user.CanAccessAdmin() {
 		AbortWithError(c, 403, "FORBIDDEN", "Admin access required")
 		return false
 	}

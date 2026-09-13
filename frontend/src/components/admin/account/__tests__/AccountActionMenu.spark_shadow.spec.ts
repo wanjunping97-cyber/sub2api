@@ -173,4 +173,19 @@ describe('AccountActionMenu — spark shadow 按钮可见性', () => {
 
     wrapper.unmount()
   })
+
+  it('只读管理员只保留状态查看，不显示 OAuth 凭据操作', () => {
+    const account = makeAccount({ platform: 'openai', type: 'oauth', parent_account_id: null })
+    const wrapper = mount(AccountActionMenu, {
+      props: { show: true, account, anchorRect, readOnly: true },
+      attachTo: document.body,
+    })
+    const body = getBodyText()
+    expect(body).toContain('admin.accounts.viewStats')
+    expect(body).not.toContain('admin.accounts.reAuthorize')
+    expect(body).not.toContain('admin.accounts.refreshToken')
+    expect(body).not.toContain('admin.accounts.testConnection')
+    expect(body).not.toContain('admin.accounts.createSparkShadow')
+    wrapper.unmount()
+  })
 })

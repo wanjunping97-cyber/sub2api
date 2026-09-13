@@ -12,9 +12,10 @@ type RedeemCode struct {
 	Type      string
 	Value     float64
 	Status    string
-	UsedBy    *int64
-	UsedAt    *time.Time
-	Notes     string
+	UsedBy      *int64
+	UsedAt      *time.Time
+	NextResetAt *time.Time
+	Notes       string
 	CreatedAt time.Time
 	ExpiresAt *time.Time
 

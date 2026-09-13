@@ -21,10 +21,20 @@ func NextBalanceResetAt(usedAt time.Time) time.Time {
 	return usedAt.UTC().Add(BalanceResetCycle)
 }
 
+// ResolveNextBalanceResetAt uses an admin-chosen next reset time when set,
+// otherwise falls back to used_at + 7 days.
+func ResolveNextBalanceResetAt(usedAt time.Time, nextResetAt *time.Time) time.Time {
+	if nextResetAt != nil && !nextResetAt.IsZero() {
+		return nextResetAt.UTC()
+	}
+	return NextBalanceResetAt(usedAt)
+}
+
 // LatestBalanceReset is the newest used balance_reset code for a user.
 type LatestBalanceReset struct {
-	UsedAt time.Time
-	Value  float64
+	UsedAt      time.Time
+	Value       float64
+	NextResetAt *time.Time
 }
 
 func BalanceResetCycleDays() int {

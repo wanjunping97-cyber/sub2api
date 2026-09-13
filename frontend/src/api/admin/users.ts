@@ -68,7 +68,7 @@ export async function list(
   pageSize: number = 20,
   filters?: {
     status?: 'active' | 'disabled'
-    role?: 'admin' | 'user'
+    role?: 'admin' | 'readonly' | 'user'
     search?: string
     group_name?: string         // fuzzy filter by allowed group name
     api_key_group_id?: number   // filter users by the group their API keys are bound to
@@ -134,7 +134,7 @@ export async function create(userData: {
   password: string
   username?: string
   notes?: string
-  role?: 'admin' | 'user'
+  role?: 'admin' | 'readonly' | 'user'
   balance?: number
   concurrency?: number
   rpm_limit?: number
@@ -188,16 +188,18 @@ export async function updateBalance(
 }
 
 /**
- * Replace user balance like a balance_reset redeem and start a new 7-day cycle.
+ * Replace user balance like a balance_reset redeem and start a new reset cycle.
  */
 export async function resetBalance(
   id: number,
   value: number,
-  notes?: string
+  notes?: string,
+  nextResetAt?: string
 ): Promise<AdminUser> {
   const { data } = await apiClient.post<AdminUser>(`/admin/users/${id}/balance-reset`, {
     value,
-    notes: notes || ''
+    notes: notes || '',
+    next_reset_at: nextResetAt || undefined
   })
   return data
 }

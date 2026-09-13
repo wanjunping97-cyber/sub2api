@@ -32,6 +32,19 @@
         </p>
       </div>
       <div>
+        <label class="input-label">{{ t('admin.users.resetBalanceNextResetDate') }}</label>
+        <input
+          v-model="form.nextResetDate"
+          data-test="reset-next-reset-at"
+          type="date"
+          required
+          class="input"
+        />
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          {{ t('admin.users.resetBalanceNextResetHint') }}
+        </p>
+      </div>
+      <div>
         <label class="input-label">{{ t('admin.users.notes') }}</label>
         <textarea
           v-model="form.notes"
@@ -73,6 +86,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { adminAPI } from '@/api/admin'
 import type { AdminUser } from '@/types'
+import { formatDateLocalInput } from '@/utils/format'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 
 const props = defineProps<{ show: boolean; user: AdminUser | null }>()
@@ -82,7 +96,18 @@ const appStore = useAppStore()
 
 const submitting = ref(false)
 const usedLastResetValue = ref(false)
-const form = reactive({ amount: 0, notes: '' })
+const form = reactive({ amount: 0, notes: '', nextResetDate: '' })
+
+const defaultNextResetDate = (): string => {
+  const date = new Date()
+  date.setDate(date.getDate() + 7)
+  return formatDateLocalInput(date)
+}
+
+const nextResetDateToISO = (date: string): string | undefined => {
+  if (!date) return undefined
+  return `${date}T00:00:00.000Z`
+}
 
 const defaultResetAmount = (user: AdminUser | null): { amount: number; fromLast: boolean } => {
   if (!user) return { amount: 0, fromLast: false }
@@ -103,6 +128,7 @@ watch(
     const preset = defaultResetAmount(props.user)
     form.amount = preset.amount
     form.notes = ''
+    form.nextResetDate = defaultNextResetDate()
     usedLastResetValue.value = preset.fromLast
   }
 )
@@ -124,7 +150,12 @@ const handleSubmit = async () => {
   }
   submitting.value = true
   try {
-    const updated = await adminAPI.users.resetBalance(props.user.id, form.amount, form.notes)
+    const updated = await adminAPI.users.resetBalance(
+      props.user.id,
+      form.amount,
+      form.notes,
+      nextResetDateToISO(form.nextResetDate)
+    )
     appStore.showSuccess(t('admin.users.resetBalanceSuccess'))
     emit('success', updated)
     emit('close')

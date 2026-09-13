@@ -38792,6 +38792,7 @@ type RedeemCodeMutation struct {
 	addvalue         *float64
 	status           *string
 	used_at          *time.Time
+	next_reset_at    *time.Time
 	notes            *string
 	created_at       *time.Time
 	expires_at       *time.Time
@@ -39167,6 +39168,55 @@ func (m *RedeemCodeMutation) ResetUsedAt() {
 	delete(m.clearedFields, redeemcode.FieldUsedAt)
 }
 
+// SetNextResetAt sets the "next_reset_at" field.
+func (m *RedeemCodeMutation) SetNextResetAt(t time.Time) {
+	m.next_reset_at = &t
+}
+
+// NextResetAt returns the value of the "next_reset_at" field in the mutation.
+func (m *RedeemCodeMutation) NextResetAt() (r time.Time, exists bool) {
+	v := m.next_reset_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNextResetAt returns the old "next_reset_at" field's value of the RedeemCode entity.
+// If the RedeemCode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RedeemCodeMutation) OldNextResetAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNextResetAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNextResetAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNextResetAt: %w", err)
+	}
+	return oldValue.NextResetAt, nil
+}
+
+// ClearNextResetAt clears the value of the "next_reset_at" field.
+func (m *RedeemCodeMutation) ClearNextResetAt() {
+	m.next_reset_at = nil
+	m.clearedFields[redeemcode.FieldNextResetAt] = struct{}{}
+}
+
+// NextResetAtCleared returns if the "next_reset_at" field was cleared in this mutation.
+func (m *RedeemCodeMutation) NextResetAtCleared() bool {
+	_, ok := m.clearedFields[redeemcode.FieldNextResetAt]
+	return ok
+}
+
+// ResetNextResetAt resets all changes to the "next_reset_at" field.
+func (m *RedeemCodeMutation) ResetNextResetAt() {
+	m.next_reset_at = nil
+	delete(m.clearedFields, redeemcode.FieldNextResetAt)
+}
+
 // SetNotes sets the "notes" field.
 func (m *RedeemCodeMutation) SetNotes(s string) {
 	m.notes = &s
@@ -39507,7 +39557,7 @@ func (m *RedeemCodeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *RedeemCodeMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.code != nil {
 		fields = append(fields, redeemcode.FieldCode)
 	}
@@ -39525,6 +39575,9 @@ func (m *RedeemCodeMutation) Fields() []string {
 	}
 	if m.used_at != nil {
 		fields = append(fields, redeemcode.FieldUsedAt)
+	}
+	if m.next_reset_at != nil {
+		fields = append(fields, redeemcode.FieldNextResetAt)
 	}
 	if m.notes != nil {
 		fields = append(fields, redeemcode.FieldNotes)
@@ -39561,6 +39614,8 @@ func (m *RedeemCodeMutation) Field(name string) (ent.Value, bool) {
 		return m.UsedBy()
 	case redeemcode.FieldUsedAt:
 		return m.UsedAt()
+	case redeemcode.FieldNextResetAt:
+		return m.NextResetAt()
 	case redeemcode.FieldNotes:
 		return m.Notes()
 	case redeemcode.FieldCreatedAt:
@@ -39592,6 +39647,8 @@ func (m *RedeemCodeMutation) OldField(ctx context.Context, name string) (ent.Val
 		return m.OldUsedBy(ctx)
 	case redeemcode.FieldUsedAt:
 		return m.OldUsedAt(ctx)
+	case redeemcode.FieldNextResetAt:
+		return m.OldNextResetAt(ctx)
 	case redeemcode.FieldNotes:
 		return m.OldNotes(ctx)
 	case redeemcode.FieldCreatedAt:
@@ -39652,6 +39709,13 @@ func (m *RedeemCodeMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUsedAt(v)
+		return nil
+	case redeemcode.FieldNextResetAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNextResetAt(v)
 		return nil
 	case redeemcode.FieldNotes:
 		v, ok := value.(string)
@@ -39751,6 +39815,9 @@ func (m *RedeemCodeMutation) ClearedFields() []string {
 	if m.FieldCleared(redeemcode.FieldUsedAt) {
 		fields = append(fields, redeemcode.FieldUsedAt)
 	}
+	if m.FieldCleared(redeemcode.FieldNextResetAt) {
+		fields = append(fields, redeemcode.FieldNextResetAt)
+	}
 	if m.FieldCleared(redeemcode.FieldNotes) {
 		fields = append(fields, redeemcode.FieldNotes)
 	}
@@ -39779,6 +39846,9 @@ func (m *RedeemCodeMutation) ClearField(name string) error {
 		return nil
 	case redeemcode.FieldUsedAt:
 		m.ClearUsedAt()
+		return nil
+	case redeemcode.FieldNextResetAt:
+		m.ClearNextResetAt()
 		return nil
 	case redeemcode.FieldNotes:
 		m.ClearNotes()
@@ -39814,6 +39884,9 @@ func (m *RedeemCodeMutation) ResetField(name string) error {
 		return nil
 	case redeemcode.FieldUsedAt:
 		m.ResetUsedAt()
+		return nil
+	case redeemcode.FieldNextResetAt:
+		m.ResetNextResetAt()
 		return nil
 	case redeemcode.FieldNotes:
 		m.ResetNotes()

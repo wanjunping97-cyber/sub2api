@@ -63,7 +63,7 @@ type CreateUserRequest struct {
 	Password             string   `json:"password" binding:"required,min=6"`
 	Username             string   `json:"username"`
 	Notes                string   `json:"notes"`
-	Role                 string   `json:"role" binding:"omitempty,oneof=admin user"`
+	Role                 string   `json:"role" binding:"omitempty,oneof=admin readonly user"`
 	Balance              *float64 `json:"balance"`
 	Concurrency          int      `json:"concurrency"`
 	RPMLimit             int      `json:"rpm_limit"`
@@ -78,7 +78,7 @@ type UpdateUserRequest struct {
 	Password             string   `json:"password" binding:"omitempty,min=6"`
 	Username             *string  `json:"username"`
 	Notes                *string  `json:"notes"`
-	Role                 string   `json:"role" binding:"omitempty,oneof=admin user"`
+	Role                 string   `json:"role" binding:"omitempty,oneof=admin readonly user"`
 	Balance              *float64 `json:"balance"`
 	Concurrency          *int     `json:"concurrency"`
 	RPMLimit             *int     `json:"rpm_limit"`
@@ -99,8 +99,9 @@ type UpdateBalanceRequest struct {
 
 // ResetBalanceRequest replaces the user's balance like a balance_reset redeem.
 type ResetBalanceRequest struct {
-	Value float64 `json:"value" binding:"required,gt=0"`
-	Notes string  `json:"notes"`
+	Value       float64    `json:"value" binding:"required,gt=0"`
+	Notes       string     `json:"notes"`
+	NextResetAt *time.Time `json:"next_reset_at"`
 }
 
 type BindUserAuthIdentityRequest struct {
@@ -334,9 +335,9 @@ func (h *UserHandler) Update(c *gin.Context) {
 		return
 	}
 
-	// 防锁死保护：管理员不能把自己降级为普通用户(单管理员场景下会失去后台访问权)。
+	// 防锁死保护：管理员不能把自己降级为非管理员(单管理员场景下会失去后台写权限)。
 	// 与既有"不能禁用/删除 admin"保护一致。降级其他管理员仍然允许。
-	if req.Role == service.RoleUser && userID == getAdminIDFromContext(c) {
+	if req.Role != "" && req.Role != service.RoleAdmin && userID == getAdminIDFromContext(c) {
 		response.BadRequest(c, "cannot demote yourself from admin")
 		return
 	}
@@ -429,8 +430,9 @@ func (h *UserHandler) UpdateBalance(c *gin.Context) {
 	})
 }
 
-// ResetBalance replaces the user's balance and records a used balance_reset
-// so next_balance_reset_at becomes now + 7 days.
+// ResetBalance replaces the user's balance and records a used balance_reset.
+// next_reset_at, when set, becomes the next natural reset reminder;
+// otherwise next_balance_reset_at is now + 7 days.
 // POST /api/v1/admin/users/:id/balance-reset
 func (h *UserHandler) ResetBalance(c *gin.Context) {
 	userID, err := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -446,14 +448,14 @@ func (h *UserHandler) ResetBalance(c *gin.Context) {
 	}
 
 	idempotencyPayload := struct {
-		UserID int64                `json:"user_id"`
-		Body   ResetBalanceRequest  `json:"body"`
+		UserID int64               `json:"user_id"`
+		Body   ResetBalanceRequest `json:"body"`
 	}{
 		UserID: userID,
 		Body:   req,
 	}
 	executeAdminIdempotentJSON(c, "admin.users.balance.reset", idempotencyPayload, service.DefaultWriteIdempotencyTTL(), func(ctx context.Context) (any, error) {
-		user, execErr := h.adminService.ResetUserBalance(ctx, userID, req.Value, req.Notes)
+		user, execErr := h.adminService.ResetUserBalance(ctx, userID, req.Value, req.Notes, req.NextResetAt)
 		if execErr != nil {
 			return nil, execErr
 		}

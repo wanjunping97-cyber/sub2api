@@ -1,4 +1,5 @@
 export default {
+    readonlyBanner: 'You are a read-only administrator: you can inspect account status, but cannot change data or export/view OAuth tokens, API keys, or other credentials.',
     // Dashboard
     dashboard: {
       title: 'Admin Dashboard',
@@ -477,7 +478,7 @@ export default {
       balanceResetDueSoon: 'Due soon',
       nextResetOverdue: 'Overdue',
       nextResetDueSoon: 'Due soon',
-      nextResetHint: 'After a reset-balance redeem or an admin reset, the next natural reset is 7 days later so you can run it from the user menu',
+      nextResetHint: 'A reset-balance redeem defaults to 7 days later; an admin reset can set a custom natural reset date',
       authorizedGroupFilter: 'Authorized Group',
       allAuthorizedGroups: 'All Authorized Groups',
       searchAuthorizedGroups: 'Search authorized groups...',
@@ -486,6 +487,7 @@ export default {
       statusFilter: 'Status Filter',
       allStatuses: 'All Status',
       admin: 'Admin',
+      readonly: 'Read-only',
       user: 'User',
       disabled: 'Disabled',
       email: 'Email',
@@ -641,8 +643,10 @@ export default {
       withdraw: 'Withdraw',
       resetBalance: 'Run Reset',
       resetBalanceAmount: 'Reset Amount',
-      resetBalanceHint: "This replaces the user's current balance with this amount (same as a reset-balance redeem) and sets the next natural reset to 7 days later. Invite rebate is not triggered.",
+      resetBalanceHint: "This replaces the user's current balance with this amount (same as a reset-balance redeem). You can set the next natural reset date; it defaults to 7 days later. Invite rebate is not triggered.",
       resetBalanceDefaultHint: 'Prefilled from the last reset amount',
+      resetBalanceNextResetDate: 'Natural reset date',
+      resetBalanceNextResetHint: 'On that day you can run the next reset from the user menu. Defaults to 7 days later.',
       resetBalanceNotesPlaceholder: 'e.g. scheduled 7-day natural reset',
       confirmResetBalance: 'Confirm Reset',
       resettingBalance: 'Resetting...',
@@ -691,6 +695,7 @@ export default {
       totalRecharged: 'Total Recharged',
       roles: {
         admin: 'Admin',
+        readonly: 'Read-only admin',
         user: 'User'
       },
       // Settings Dropdowns

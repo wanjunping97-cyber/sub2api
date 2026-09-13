@@ -1,4 +1,5 @@
 export default {
+    readonlyBanner: '当前为只读管理员：可以查看账号状态，但不能修改数据，也不能导出或查看 OAuth / API Key 等凭据。',
     // Dashboard
     dashboard: {
       title: '管理控制台',
@@ -477,7 +478,7 @@ export default {
       balanceResetDueSoon: '即将到期',
       nextResetOverdue: '已到期',
       nextResetDueSoon: '即将到期',
-      nextResetHint: '用户兑换重置余额码或管理员执行重置后，下次自然重置为 7 天后，便于到时在用户操作里再次执行',
+      nextResetHint: '用户兑换重置余额码后默认 7 天后提醒；管理员执行重置时可手选自然重置日',
       authorizedGroupFilter: '授权分组',
       allAuthorizedGroups: '全部授权分组',
       searchAuthorizedGroups: '搜索授权分组...',
@@ -486,6 +487,7 @@ export default {
       statusFilter: '状态筛选',
       allStatuses: '全部状态',
       admin: '管理员',
+      readonly: '只读',
       user: '用户',
       disabled: '禁用',
       email: '邮箱',
@@ -568,6 +570,7 @@ export default {
       deleteConfirm: "确定要删除用户 '{email}' 吗？此操作无法撤销。",
       roles: {
         admin: '管理员',
+        readonly: '只读管理员',
         user: '用户'
       },
       form: {
@@ -645,8 +648,10 @@ export default {
       withdraw: '退款',
       resetBalance: '执行重置',
       resetBalanceAmount: '重置额度',
-      resetBalanceHint: '将把该用户余额覆盖为该金额（与重置余额兑换码相同），并把下次自然重置时间设为 7 天后。不会触发邀请返利。',
+      resetBalanceHint: '将把该用户余额覆盖为该金额（与重置余额兑换码相同），并可指定下次自然重置日。不填则默认为 7 天后。不会触发邀请返利。',
       resetBalanceDefaultHint: '已按上次重置面值填入',
+      resetBalanceNextResetDate: '自然重置日',
+      resetBalanceNextResetHint: '到期当天可在用户操作里再次执行重置。默认是 7 天后。',
       resetBalanceNotesPlaceholder: '例如：7 天周期自然重置',
       confirmResetBalance: '确认重置',
       resettingBalance: '重置中...',
